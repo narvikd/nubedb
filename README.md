@@ -2,8 +2,14 @@
 
 NubeDB is a simple distributed key-value database that uses the Raft consensus algorithm for data replication and consistency.
 
+
+### Features
+* Distributed and replicated data storage
+* Simple to use
+* Automatic failover and recovery if any of the nodes go down
+
+
 ### Table of Contents  
-* [Features](#features)
 * [Getting started](#getting-started)
   * [Installation](#installation)
   * [Starting a cluster](#starting-a-cluster)
@@ -11,11 +17,6 @@ NubeDB is a simple distributed key-value database that uses the Raft consensus a
     * [Consensus](#consensus)
     * [Database](#database)
 * [Testing the cluster](#testing-the-cluster)
-
-### Features
-* Distributed and replicated data storage
-* Simple to use
-* Automatic failover and recovery if any of the nodes go down
 
 
 ## Getting started
