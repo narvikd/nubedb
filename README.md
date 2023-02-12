@@ -38,7 +38,7 @@ This will start a 3 node NudeDB cluster, where each node is able to communicate 
 #### Using the API
 NubeDB provides a simple REST API for accessing its k/v database. You can interact with it using any HTTP client.
 
-For example, to set a value for a key, you can send a POST request to the API:
+For example, to set a value for a key, you can send a `POST` request to the API:
 <img width="1920" alt="Set Value" src="https://user-images.githubusercontent.com/84069271/218323894-50175fd1-2fa7-4c24-9b0f-c6e0feedb759.png">
 
 
@@ -46,7 +46,7 @@ Please note that this can only be done in the `Leader` node. If you attempt to d
 <img width="1920" alt="Non Leader trying to store" src="https://user-images.githubusercontent.com/84069271/218324097-8f8a3927-0a55-40db-b50a-16008d10aa69.png">
 
 
-To retrieve a value for a key, you can send a GET request to any of the nodes, it doesn't need to be a `Leader`:
+To retrieve a value for a key, you can send a `GET` request to any of the nodes, it doesn't need to be a `Leader`:
 <img width="1920" alt="Get a key on leader" src="https://user-images.githubusercontent.com/84069271/218324205-d8d9cbd2-5248-499a-b95f-38ad5eba55c1.png">
 
 
