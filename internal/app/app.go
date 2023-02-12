@@ -29,7 +29,7 @@ func NewApp(cfg config.Config) *App {
 	}
 
 	serv := fiber.New(fiber.Config{
-		AppName:           "Consensus Experiment",
+		AppName:           "NubeDB",
 		EnablePrintRoutes: false,
 		IdleTimeout:       5 * time.Second,
 		WriteTimeout:      10 * time.Second,
