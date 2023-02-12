@@ -25,5 +25,6 @@ jobs:
           ldflags: "-w -s"
           md5sum: TRUE
           sha256sum: TRUE
+          extra_files: LICENSE.md README.md
           retry: 10
           overwrite: true
