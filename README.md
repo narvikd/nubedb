@@ -40,19 +40,19 @@ NubeDB provides a simple REST API for accessing its k/v database. You can intera
 
 ##### Consensus
 Join node 2 to node 1
-```bash
-example
-```
+<img width="1920" alt="Node 2 joins" src="https://user-images.githubusercontent.com/84069271/218324925-e6648532-2aba-433f-a72a-a0fc28a285ee.png">
+
 
 Join node 3 to node 1
-```bash
-example
-```
+<img width="1920" alt="Node 3 joins" src="https://user-images.githubusercontent.com/84069271/218324946-6549d3b2-4d0b-4a57-b88b-0e5ff146d435.png">
+
+Consensus changes are reflected on the console, now the nodes are no longer `Leader` but `Follower`:
+<img width="1920" alt="Nodes join console" src="https://user-images.githubusercontent.com/84069271/218324983-1cfe1fec-388b-4437-8d7b-d56566627a09.png">
+
 
 Check consensus state
-```bash
-example
-```
+<img width="1920" alt="Consensus state" src="https://user-images.githubusercontent.com/84069271/218325055-92af693a-fe39-48c8-a42a-dacdc10ad5f0.png">
+
 
 ##### Database
 For example, to set a value for a key, you can send a `POST` request to the API:
