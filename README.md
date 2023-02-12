@@ -44,11 +44,11 @@ Please note that they will all start as a `Leader` and not know about each other
 NubeDB provides a simple REST API for accessing its k/v database. You can interact with it using any HTTP client.
 
 #### Consensus
-Join `node 2` to `node 1`
+Join `node 2` to `node 1`:
 <img width="1920" alt="Node2 joins" src="https://user-images.githubusercontent.com/84069271/218324925-e6648532-2aba-433f-a72a-a0fc28a285ee.png">
 
 
-Join `node 3` to `node 1`
+Join `node 3` to `node 1`:
 <img width="1920" alt="Node3 joins" src="https://user-images.githubusercontent.com/84069271/218325412-82085884-c203-4d8b-bca2-4e13a8866656.png">
 
 
@@ -56,7 +56,7 @@ Consensus changes are reflected on the console, now the nodes are no longer `Lea
 <img width="1920" alt="Nodes join console" src="https://user-images.githubusercontent.com/84069271/218324983-1cfe1fec-388b-4437-8d7b-d56566627a09.png">
 
 
-Check consensus state
+Check consensus state:
 <img width="1920" alt="Consensus state" src="https://user-images.githubusercontent.com/84069271/218325055-92af693a-fe39-48c8-a42a-dacdc10ad5f0.png">
 
 
@@ -80,3 +80,50 @@ To retrieve a value for a key, you can send a `GET` request to any of the nodes,
 If it doesn't exist:
 <img width="1920" alt="Key doesn't exist" src="https://user-images.githubusercontent.com/84069271/218324306-9bb85f07-01e9-49f6-b848-00b5458343fb.png">
 
+
+## Testing the system
+
+Store a value
+```bash
+example
+```
+
+Get from a node
+```bash
+example
+```
+
+Ensuring the 3 nodes are working
+```bash
+example
+```
+
+Shutdown `Leader`. We check that a `Follower` get `Leader` status
+```bash
+example
+```
+
+Mutate key `hello` on new `Leader` on `node2`
+```bash
+example
+```
+
+Check if changes are reflected on the `Follower` on `node3`
+```bash
+example
+```
+
+Startup old `Leader`. Check if it's now a `Follower`. Snapshot of the new data is downloaded
+```bash
+example
+```
+
+Check if the data on `node1` is the new data, and not the old one. The cluster doesn't have a [split brain](https://en.wikipedia.org/wiki/Split-brain_(computing)).
+```bash
+example
+```
+
+Check if old `Leader` on `node1` is recognized as a follower in the consensus status
+```bash
+example
+```
