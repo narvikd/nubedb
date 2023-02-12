@@ -35,7 +35,7 @@ To start a NubeDB cluster, you need to run a NubeDB node on each machine that yo
 
 This will start a 3 node NudeDB cluster, where each node is able to communicate with the others and participate in the consensus.
 
-Please note that they will all start as a `Leader` and not know about each other, in the next session we will communicate them with each other.
+Please note that they will all start as a `Leader` and not know about each other, with the API we will connect them between each other.
 
 <img width="1920" alt="Startup" src="https://user-images.githubusercontent.com/84069271/218325196-710e9074-ffe3-49e4-8aaf-61c3d2deeb19.png">
 
@@ -44,11 +44,11 @@ Please note that they will all start as a `Leader` and not know about each other
 NubeDB provides a simple REST API for accessing its k/v database. You can interact with it using any HTTP client.
 
 ##### Consensus
-Join node 2 to node 1
+Join `node 2` to `node 1`
 <img width="1920" alt="Node2 joins" src="https://user-images.githubusercontent.com/84069271/218324925-e6648532-2aba-433f-a72a-a0fc28a285ee.png">
 
 
-Join node 3 to node 1
+Join `node 3` to `node 1`
 <img width="1920" alt="Node3 joins" src="https://user-images.githubusercontent.com/84069271/218325412-82085884-c203-4d8b-bca2-4e13a8866656.png">
 
 
