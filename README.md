@@ -83,47 +83,35 @@ If it doesn't exist:
 
 ## Testing the system
 
-Store a value
-```bash
-example
-```
+Store a value:
+<img width="1920" alt="Store value" src="https://user-images.githubusercontent.com/84069271/218323894-50175fd1-2fa7-4c24-9b0f-c6e0feedb759.png">
 
-Get from a node
-```bash
-example
-```
+Get from a node:
+<img width="1920" alt="Get from node" src="https://user-images.githubusercontent.com/84069271/218324242-a4e66d74-19b4-4148-9322-6b3eaf4d83c7.png">
 
-Ensuring the 3 nodes are working
-```bash
-example
-```
+Ensuring the 3 nodes are working:
+<img width="1920" alt="3 nodes working" src="https://user-images.githubusercontent.com/84069271/218326585-db754e4b-e17b-4712-8a1c-6737bd585dbe.png">
 
-Shutdown `Leader`. We check that a `Follower` get `Leader` status
-```bash
-example
-```
 
-Mutate key `hello` on new `Leader` on `node2`
-```bash
-example
-```
+Shutdown `Leader`. We check that a `Follower` gets `Leader` status:
+<img width="1920" alt="Leader shutdown" src="https://user-images.githubusercontent.com/84069271/218326617-1d2b0e29-c88f-4682-b013-ed5ad211c94b.png">
 
-Check if changes are reflected on the `Follower` on `node3`
-```bash
-example
-```
 
-Startup old `Leader`. Check if it's now a `Follower`. Snapshot of the new data is downloaded
-```bash
-example
-```
+Mutate key `hello` on new `Leader` on `node2`:
+<img width="1920" alt="Mutate hello" src="https://user-images.githubusercontent.com/84069271/218326636-34c7d07f-5d2d-44e2-b985-eff09fad39ef.png">
 
-Check if the data on `node1` is the new data, and not the old one. The cluster doesn't have a [split brain](https://en.wikipedia.org/wiki/Split-brain_(computing)).
-```bash
-example
-```
 
-Check if old `Leader` on `node1` is recognized as a follower in the consensus status
-```bash
-example
-```
+Check if changes are reflected on the `Follower` on `node3`:
+<img width="1920" alt="Node3 check" src="https://user-images.githubusercontent.com/84069271/218326653-1eae3355-0108-4d10-a343-f984558aa24f.png">
+
+
+Startup old `Leader`. Check if it's now a `Follower`. Snapshot of the new data is downloaded:
+<img width="1920" alt="Startup old leader" src="https://user-images.githubusercontent.com/84069271/218326677-b7f62686-cbfe-429e-b78a-a821b35231a6.png">
+
+
+Check if the data on `node1` is the new data, and not the old one. The cluster doesn't have a [split brain](https://en.wikipedia.org/wiki/Split-brain_(computing)):
+<img width="1920" alt="Get data from node1" src="https://user-images.githubusercontent.com/84069271/218326709-6cc64f86-8172-4b5b-a7b2-dd669933a999.png">
+
+
+Check if old `Leader` on `node1` is recognized as a `Follower` in the consensus status:
+<img width="1920" alt="Recognized as follower" src="https://user-images.githubusercontent.com/84069271/218326750-3de1a5da-a39c-4836-a526-71d2a6898401.png">
