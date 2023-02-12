@@ -26,9 +26,9 @@ func (a *ApiCtx) consensusJoin(fiberCtx *fiber.Ctx) error {
 		return jsonresponse.ServerError(fiberCtx, errorskit.Wrap(future.Error(), "failed to add voter").Error())
 	}
 
-	return jsonresponse.OK(fiberCtx, fmt.Sprintf("node %s added to consensus", c.ID), "")
+	return jsonresponse.OK(fiberCtx, fmt.Sprintf("node '%s' added to consensus", c.ID), "")
 }
 
 func (a *ApiCtx) consensusState(fiberCtx *fiber.Ctx) error {
-	return jsonresponse.OK(fiberCtx, "", a.Consensus.Stats())
+	return jsonresponse.OK(fiberCtx, "consensus state retrieved successfully", a.Consensus.Stats())
 }
