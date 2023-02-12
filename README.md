@@ -43,7 +43,7 @@ Please note that they will all start as a `Leader` and not know about each other
 #### Using the API
 NubeDB provides a simple REST API for accessing its k/v database. You can interact with it using any HTTP client.
 
-##### Consensus
+#### Consensus
 Join `node 2` to `node 1`
 <img width="1920" alt="Node2 joins" src="https://user-images.githubusercontent.com/84069271/218324925-e6648532-2aba-433f-a72a-a0fc28a285ee.png">
 
@@ -60,8 +60,8 @@ Check consensus state
 <img width="1920" alt="Consensus state" src="https://user-images.githubusercontent.com/84069271/218325055-92af693a-fe39-48c8-a42a-dacdc10ad5f0.png">
 
 
-##### Database
-For example, to set a value for a key, you can send a `POST` request to the API:
+#### Database
+To set a value for a key, you can send a `POST` request to the API:
 <img width="1920" alt="Set Value" src="https://user-images.githubusercontent.com/84069271/218323894-50175fd1-2fa7-4c24-9b0f-c6e0feedb759.png">
 
 
