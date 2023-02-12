@@ -2,6 +2,16 @@
 
 NubeDB is a simple distributed key-value database that uses the Raft consensus algorithm for data replication and consistency.
 
+### Table of Contents  
+* [Features](#features)
+* [Getting started](#getting-started)
+  * [Installation](#installation)
+  * [Starting a cluster](#starting-a-cluster)
+  * [Using the API](#using-the-api)
+    * [Consensus](#consensus)
+    * [Database](#database)
+* [Testing the cluster](#testing-the-cluster)
+
 ### Features
 * Distributed and replicated data storage
 * Simple to use
@@ -81,7 +91,7 @@ If it doesn't exist:
 <img width="1920" alt="Key doesn't exist" src="https://user-images.githubusercontent.com/84069271/218324306-9bb85f07-01e9-49f6-b848-00b5458343fb.png">
 
 
-## Testing the system
+## Testing the cluster
 
 Store a value:
 <img width="1920" alt="Store value" src="https://user-images.githubusercontent.com/84069271/218323894-50175fd1-2fa7-4c24-9b0f-c6e0feedb759.png">
