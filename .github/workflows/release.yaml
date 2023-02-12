@@ -14,13 +14,13 @@ jobs:
         goos: [linux, windows, darwin]
         goarch: [amd64]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: wangyoucao577/go-release-action@v1.35
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           goos: ${{ matrix.goos }}
           goarch: ${{ matrix.goarch }}
-          asset_name: rc_${{ matrix.goos }}-${{ matrix.goarch }}
+          asset_name: nubedb_${{ matrix.goos }}
           executable_compression: upx --lzma
           ldflags: "-w -s"
           md5sum: TRUE
