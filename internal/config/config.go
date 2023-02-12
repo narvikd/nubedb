@@ -7,7 +7,9 @@ import (
 
 type Config struct {
 	ID               string
+	Host             string
 	ApiPort          int
+	ApiAddress       string
 	ConsensusHost    string
 	ConsensusPort    int
 	ConsensusAddress string
@@ -15,16 +17,18 @@ type Config struct {
 
 func New() Config {
 	id := flag.String("id", "node_1", "")
+	host := flag.String("host", "localhost", "")
 	apiPort := flag.Int("api-port", 3001, "")
-	consensusHost := flag.String("consensus-host", "localhost", "")
 	consensusPort := flag.Int("consensus-port", 4001, "")
 	flag.Parse()
 
-	consensusAddress := fmt.Sprintf("%s:%v", *consensusHost, *consensusPort)
+	apiAddress := fmt.Sprintf("%s:%v", *host, *apiPort)
+	consensusAddress := fmt.Sprintf("%s:%v", *host, *consensusPort)
 	return Config{
 		ID:               *id,
+		Host:             *host,
 		ApiPort:          *apiPort,
-		ConsensusHost:    *consensusHost,
+		ApiAddress:       apiAddress,
 		ConsensusPort:    *consensusPort,
 		ConsensusAddress: consensusAddress,
 	}
