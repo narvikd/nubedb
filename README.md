@@ -38,6 +38,23 @@ This will start a 3 node NudeDB cluster, where each node is able to communicate 
 #### Using the API
 NubeDB provides a simple REST API for accessing its k/v database. You can interact with it using any HTTP client.
 
+##### Consensus
+Join node 2 to node 1
+```bash
+example
+```
+
+Join node 3 to node 1
+```bash
+example
+```
+
+Check consensus state
+```bash
+example
+```
+
+##### Database
 For example, to set a value for a key, you can send a `POST` request to the API:
 <img width="1920" alt="Set Value" src="https://user-images.githubusercontent.com/84069271/218323894-50175fd1-2fa7-4c24-9b0f-c6e0feedb759.png">
 
