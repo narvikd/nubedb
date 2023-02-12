@@ -25,3 +25,5 @@ jobs:
           ldflags: "-w -s"
           md5sum: TRUE
           sha256sum: TRUE
+          retry: 10
+          overwrite: true
