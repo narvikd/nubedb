@@ -2,18 +2,17 @@ package fsm
 
 import (
 	"encoding/json"
-	"errors"
 	"github.com/narvikd/errorskit"
 )
 
-func (dbFSM DatabaseFSM) get(k string) (map[string]any, error) {
+func (dbFSM DatabaseFSM) Get(k string) (map[string]any, bool, error) {
 	resultMap := map[string]any{}
 	dbResultValue := make([]byte, 0)
 
 	txn := dbFSM.db.NewTransaction(false)
 	dbResult, errGet := txn.Get([]byte(k))
 	if errGet != nil {
-		return nil, errGet
+		return nil, false, errGet
 	}
 
 	errDBResultValue := dbResult.Value(func(val []byte) error {
@@ -21,22 +20,22 @@ func (dbFSM DatabaseFSM) get(k string) (map[string]any, error) {
 		return nil
 	})
 	if errDBResultValue != nil {
-		return nil, errDBResultValue
+		return nil, false, errDBResultValue
 	}
 
 	if dbResultValue == nil || len(dbResultValue) <= 0 {
-		return nil, errors.New("no result for key")
+		return nil, false, nil
 	}
 
 	errUnmarshal := json.Unmarshal(dbResultValue, &resultMap)
 	if errUnmarshal != nil {
-		return nil, errorskit.Wrap(errUnmarshal, "couldn't unmarshal get results from DB")
+		return nil, false, errorskit.Wrap(errUnmarshal, "couldn't unmarshal get results from DB")
 	}
 
 	errCommit := txn.Commit()
 	if errCommit != nil {
-		return nil, errorskit.Wrap(errCommit, "couldn't commit transaction")
+		return nil, false, errorskit.Wrap(errCommit, "couldn't commit transaction")
 	}
 
-	return resultMap, nil
+	return resultMap, true, nil
 }
