@@ -9,7 +9,7 @@ import (
 	"sync"
 )
 
-type Model struct {
+type DatabaseFSM struct {
 	DB *sync.Map
 }
 
@@ -30,11 +30,11 @@ type ApplyResponse struct {
 	Data  interface{}
 }
 
-func New(db *sync.Map) *Model {
-	return &Model{DB: db}
+func New(db *sync.Map) *DatabaseFSM {
+	return &DatabaseFSM{DB: db}
 }
 
-func (m *Model) Apply(log *raft.Log) any {
+func (dbFSM *DatabaseFSM) Apply(log *raft.Log) any {
 	switch log.Type {
 	case raft.LogCommand:
 		p := new(Payload)
@@ -45,7 +45,7 @@ func (m *Model) Apply(log *raft.Log) any {
 
 		switch p.Operation {
 		case "SET":
-			m.DB.Store(p.Key, p.Value)
+			dbFSM.DB.Store(p.Key, p.Value)
 			return &ApplyResponse{}
 		default:
 			return &ApplyResponse{
@@ -57,11 +57,11 @@ func (m *Model) Apply(log *raft.Log) any {
 	}
 }
 
-func (m *Model) Snapshot() (raft.FSMSnapshot, error) {
-	return snapshot{m.DB}, nil
+func (dbFSM *DatabaseFSM) Snapshot() (raft.FSMSnapshot, error) {
+	return snapshot{dbFSM.DB}, nil
 }
 
-func (m *Model) Restore(snap io.ReadCloser) error {
+func (dbFSM *DatabaseFSM) Restore(snap io.ReadCloser) error {
 	d := json.NewDecoder(snap)
 	for d.More() {
 		mapper := map[string]any{}
@@ -71,7 +71,7 @@ func (m *Model) Restore(snap io.ReadCloser) error {
 		}
 
 		for k, v := range mapper {
-			m.DB.Store(k, v)
+			dbFSM.DB.Store(k, v)
 		}
 	}
 
