@@ -88,12 +88,12 @@ func (n *Node) setRaft() error {
 
 	dbStore, errRaftStore := raftboltdb.NewBoltStore(n.storageDir)
 	if errRaftStore != nil {
-		return errorskit.Wrap(errRaftStore, "couldn't create raft db storage")
+		return errorskit.Wrap(errRaftStore, "couldn't create consensus db storage")
 	}
 
 	snaps, errSnapStore := raft.NewFileSnapshotStore(n.snapshotsDir, 2, os.Stderr)
 	if errSnapStore != nil {
-		return errorskit.Wrap(errSnapStore, "couldn't create raft snapshot storage")
+		return errorskit.Wrap(errSnapStore, "couldn't create consensus snapshot storage")
 	}
 
 	cfg := raft.DefaultConfig()
@@ -103,7 +103,7 @@ func (n *Node) setRaft() error {
 
 	r, errRaft := raft.NewRaft(cfg, n.FSM, dbStore, dbStore, snaps, transport)
 	if errRaft != nil {
-		return errorskit.Wrap(errRaft, "couldn't create new raft")
+		return errorskit.Wrap(errRaft, "couldn't create new consensus")
 	}
 
 	raftCfg := raft.Configuration{
