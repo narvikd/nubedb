@@ -76,7 +76,15 @@ func newFSM(dir string) (*fsm.DatabaseFSM, error) {
 }
 
 func (n *Node) setRaft() error {
-	const timeout = 10 * time.Second
+	const (
+		timeout            = 10 * time.Second
+		maxConnectionsPool = 10
+		retainedSnapshots  = 3
+		// Note: This defaults to a very high value and can cause spam to disk if it's too low.
+		// TODO: Find appropriate value
+		snapshotThreshold = 2
+	)
+
 	serverID := raft.ServerID(n.ID)
 
 	tcpAddr, errAddr := net.ResolveTCPAddr("tcp", n.Address)
@@ -84,7 +92,7 @@ func (n *Node) setRaft() error {
 		return errorskit.Wrap(errAddr, "couldn't resolve addr")
 	}
 
-	transport, errTransport := raft.NewTCPTransport(n.Address, tcpAddr, 10, timeout, os.Stderr)
+	transport, errTransport := raft.NewTCPTransport(n.Address, tcpAddr, maxConnectionsPool, timeout, os.Stderr)
 	if errTransport != nil {
 		return errorskit.Wrap(errTransport, "couldn't create transport")
 	}
@@ -94,7 +102,7 @@ func (n *Node) setRaft() error {
 		return errorskit.Wrap(errRaftStore, "couldn't create consensus db")
 	}
 
-	snaps, errSnapStore := raft.NewFileSnapshotStore(n.snapshotsDir, 2, os.Stderr)
+	snaps, errSnapStore := raft.NewFileSnapshotStore(n.snapshotsDir, retainedSnapshots, os.Stderr)
 	if errSnapStore != nil {
 		return errorskit.Wrap(errSnapStore, "couldn't create consensus snapshot storage")
 	}
@@ -102,7 +110,7 @@ func (n *Node) setRaft() error {
 	cfg := raft.DefaultConfig()
 	cfg.LocalID = serverID
 	cfg.SnapshotInterval = timeout
-	cfg.SnapshotThreshold = 2
+	cfg.SnapshotThreshold = snapshotThreshold
 	setConsensusLogger(cfg)
 
 	r, errRaft := raft.NewRaft(cfg, n.FSM, dbStore, dbStore, snaps, transport)
@@ -120,8 +128,6 @@ func (n *Node) setRaft() error {
 	}
 
 	r.BootstrapCluster(raftCfg)
-
 	n.Consensus = r
-
 	return nil
 }
