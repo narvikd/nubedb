@@ -103,6 +103,7 @@ func (n *Node) setRaft() error {
 	cfg.LocalID = serverID
 	cfg.SnapshotInterval = timeout
 	cfg.SnapshotThreshold = 2
+	setConsensusLogger(cfg)
 
 	r, errRaft := raft.NewRaft(cfg, n.FSM, dbStore, dbStore, snaps, transport)
 	if errRaft != nil {
