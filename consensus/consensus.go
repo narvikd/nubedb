@@ -10,6 +10,7 @@ import (
 	"nubedb/consensus/fsm"
 	"os"
 	"path"
+	"path/filepath"
 	"time"
 )
 
@@ -21,6 +22,7 @@ type Node struct {
 	dir          string
 	storageDir   string
 	snapshotsDir string
+	consensusDB  string
 }
 
 func New(id string, address string) (*Node, error) {
@@ -39,7 +41,7 @@ func New(id string, address string) (*Node, error) {
 
 func newNode(id string, address string) (*Node, error) {
 	dir := path.Join("data", id)
-	storageDir := path.Join(dir, "db_store")
+	storageDir := path.Join(dir, "localdb")
 
 	f, errDB := newFSM(storageDir)
 	if errDB != nil {
@@ -53,6 +55,7 @@ func newNode(id string, address string) (*Node, error) {
 		dir:          dir,
 		storageDir:   storageDir,
 		snapshotsDir: dir, // This isn't a typo, it will create a snapshots dir inside the dir automatically
+		consensusDB:  filepath.Join(dir, "consensus.db"),
 	}
 
 	errDir := filekit.CreateDirs(n.dir, false)
@@ -86,9 +89,9 @@ func (n *Node) setRaft() error {
 		return errorskit.Wrap(errTransport, "couldn't create transport")
 	}
 
-	dbStore, errRaftStore := raftboltdb.NewBoltStore(n.storageDir)
+	dbStore, errRaftStore := raftboltdb.NewBoltStore(n.consensusDB)
 	if errRaftStore != nil {
-		return errorskit.Wrap(errRaftStore, "couldn't create consensus db storage")
+		return errorskit.Wrap(errRaftStore, "couldn't create consensus db")
 	}
 
 	snaps, errSnapStore := raft.NewFileSnapshotStore(n.snapshotsDir, 2, os.Stderr)
