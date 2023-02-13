@@ -3,19 +3,17 @@ package fsm
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/dgraph-io/badger/v3"
 	"github.com/hashicorp/raft"
 	"github.com/narvikd/errorskit"
 	"io"
-	"sync"
 )
 
 type DatabaseFSM struct {
-	DB *sync.Map
+	db *badger.DB
 }
 
-type snapshot struct {
-	m *sync.Map
-}
+type snapshot struct{}
 
 // Payload is the Payload sent for use in raft.Apply
 type Payload struct {
@@ -30,11 +28,11 @@ type ApplyResponse struct {
 	Data  interface{}
 }
 
-func New(db *sync.Map) *DatabaseFSM {
-	return &DatabaseFSM{DB: db}
+func New(db *badger.DB) raft.FSM {
+	return &DatabaseFSM{db: db}
 }
 
-func (dbFSM *DatabaseFSM) Apply(log *raft.Log) any {
+func (dbFSM DatabaseFSM) Apply(log *raft.Log) any {
 	switch log.Type {
 	case raft.LogCommand:
 		p := new(Payload)
@@ -45,7 +43,7 @@ func (dbFSM *DatabaseFSM) Apply(log *raft.Log) any {
 
 		switch p.Operation {
 		case "SET":
-			dbFSM.DB.Store(p.Key, p.Value)
+			//dbFSM.db.Store(p.Key, p.Value)
 			return &ApplyResponse{}
 		default:
 			return &ApplyResponse{
@@ -57,11 +55,7 @@ func (dbFSM *DatabaseFSM) Apply(log *raft.Log) any {
 	}
 }
 
-func (dbFSM *DatabaseFSM) Snapshot() (raft.FSMSnapshot, error) {
-	return snapshot{dbFSM.DB}, nil
-}
-
-func (dbFSM *DatabaseFSM) Restore(snap io.ReadCloser) error {
+func (dbFSM DatabaseFSM) Restore(snap io.ReadCloser) error {
 	d := json.NewDecoder(snap)
 	for d.More() {
 		mapper := map[string]any{}
@@ -70,29 +64,21 @@ func (dbFSM *DatabaseFSM) Restore(snap io.ReadCloser) error {
 			return errorskit.Wrap(errDecode, "couldn't decode snapshot")
 		}
 
-		for k, v := range mapper {
-			dbFSM.DB.Store(k, v)
-		}
+		//for k, v := range mapper {
+		//	dbFSM.db.Store(k, v)
+		//}
 	}
 
 	return snap.Close()
 }
 
-func (s snapshot) Persist(sink raft.SnapshotSink) error {
-	mapper := map[string]any{}
-	s.m.Range(func(k, v any) bool {
-		mapper[k.(string)] = v
-		return true
-	})
+// Snapshot isn't needed because BadgerDB persists data when Apply is called.
+func (dbFSM DatabaseFSM) Snapshot() (raft.FSMSnapshot, error) {
+	return snapshot{}, nil
+}
 
-	defer sink.Close()
-
-	err := json.NewEncoder(sink).Encode(mapper)
-	if err != nil {
-		_ = sink.Cancel()
-		return errorskit.Wrap(err, "couldn't encode snapshot into map")
-	}
-
+// Persist isn't needed because BadgerDB persists data when Apply is called.
+func (s snapshot) Persist(_ raft.SnapshotSink) error {
 	return nil
 }
 
