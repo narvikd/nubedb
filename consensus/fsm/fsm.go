@@ -28,7 +28,7 @@ type ApplyRes struct {
 	Error error
 }
 
-func New(db *badger.DB) raft.FSM {
+func New(db *badger.DB) *DatabaseFSM {
 	return &DatabaseFSM{db: db}
 }
 
