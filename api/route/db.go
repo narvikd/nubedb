@@ -49,7 +49,7 @@ func (a *ApiCtx) storeSet(fiberCtx *fiber.Ctx) error {
 		return jsonresponse.ServerError(fiberCtx, "couldn't persist data to DB Cluster: "+future.Error().Error())
 	}
 
-	response := future.Response().(*fsm.ApplyResponse)
+	response := future.Response().(*fsm.ApplyRes)
 	if response.Error != nil {
 		return jsonresponse.ServerError(fiberCtx, "couldn't persist data to DB Cluster. Cluster err: "+response.Error.Error())
 	}

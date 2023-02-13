@@ -22,10 +22,10 @@ type Payload struct {
 	Operation string `json:"operation"`
 }
 
-// ApplyResponse represents the response from raft's apply
-type ApplyResponse struct {
+// ApplyRes represents the response from raft's apply
+type ApplyRes struct {
+	Data  any
 	Error error
-	Data  interface{}
 }
 
 func New(db *badger.DB) raft.FSM {
@@ -43,30 +43,48 @@ func (dbFSM DatabaseFSM) Apply(log *raft.Log) any {
 
 		switch p.Operation {
 		case "SET":
-			//dbFSM.db.Store(p.Key, p.Value)
-			return &ApplyResponse{}
+			return &ApplyRes{
+				Error: dbFSM.set(p.Key, p.Value),
+			}
+		case "DELETE":
+			return &ApplyRes{
+				Error: dbFSM.delete(p.Key),
+			}
 		default:
-			return &ApplyResponse{
+			return &ApplyRes{
 				Error: fmt.Errorf("operation type not recognized: %v", p.Operation),
 			}
 		}
 	default:
-		return fmt.Errorf("raft type not recognized: %v", log.Type)
+		return fmt.Errorf("raft command not recognized: %v", log.Type)
 	}
 }
 
 func (dbFSM DatabaseFSM) Restore(snap io.ReadCloser) error {
 	d := json.NewDecoder(snap)
 	for d.More() {
-		mapper := map[string]any{}
-		errDecode := d.Decode(&mapper)
+		dbValue := new(Payload)
+		errDecode := d.Decode(&dbValue)
 		if errDecode != nil {
 			return errorskit.Wrap(errDecode, "couldn't decode snapshot")
 		}
 
-		//for k, v := range mapper {
-		//	dbFSM.db.Store(k, v)
-		//}
+		errSet := dbFSM.set(dbValue.Key, dbValue.Value)
+		if errSet != nil {
+			return errorskit.Wrap(errSet, "couldn't restore key while restoring a snapshot")
+		}
+	}
+
+	// Once the loop has completed, the program has to call the Token method on the decoder to check
+	// if it finds the closing bracket from the data stream.
+	// This particular token should not return an error, meaning that the program has reached the end of the data stream
+	// and all other tokens have been extracted.
+	// If it indeed returns an error, it would mean that an unexpected token was encountered during the Snapshot
+	// restoration, such as a closing brace in the wrong place.
+	// It could also be an indicator that the end of the input stream was reached before the closing bracket was found.
+	_, errToken := d.Token()
+	if errToken != nil {
+		return errorskit.Wrap(errToken, "couldn't restore snapshot due to json malformation")
 	}
 
 	return snap.Close()
