@@ -17,7 +17,11 @@ func (a *ApiCtx) storeGet(fiberCtx *fiber.Ctx) error {
 		return jsonresponse.BadRequest(fiberCtx, errParse.Error())
 	}
 
-	value, exists := a.DB.Load(payload.Key)
+	value, exists, errGet := a.FSM.Get(payload.Key)
+	if errGet != nil {
+		return jsonresponse.ServerError(fiberCtx, "couldn't get key from DB: "+errGet.Error())
+	}
+
 	if !exists {
 		return jsonresponse.NotFound(fiberCtx, "key doesn't exist")
 	}
