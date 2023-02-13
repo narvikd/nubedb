@@ -83,7 +83,7 @@ func (dbFSM DatabaseFSM) Restore(snap io.ReadCloser) error {
 	// restoration, such as a closing brace in the wrong place.
 	// It could also be an indicator that the end of the input stream was reached before the closing bracket was found.
 	_, errToken := d.Token()
-	if errToken != nil {
+	if errToken != nil && errToken != io.EOF { // If we reach the end of the stream, it isn't an error
 		return errorskit.Wrap(errToken, "couldn't restore snapshot due to json malformation")
 	}
 
