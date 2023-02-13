@@ -32,6 +32,7 @@ func Register(app *app.App) {
 func routes(app *fiber.App, route *ApiCtx) {
 	app.Get("/store", route.storeGet)
 	app.Post("/store", route.storeSet)
+	app.Delete("/store", route.storeDelete)
 
 	app.Get("/consensus", route.consensusState)
 	app.Post("/consensus", route.consensusJoin)

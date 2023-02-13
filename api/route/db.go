@@ -28,16 +28,35 @@ func (a *ApiCtx) storeGet(fiberCtx *fiber.Ctx) error {
 }
 
 func (a *ApiCtx) storeSet(fiberCtx *fiber.Ctx) error {
+	const operationType = "SET"
+
 	payload := new(fsm.Payload)
 	errParse := fiberparser.ParseAndValidate(fiberCtx, payload)
 	if errParse != nil {
 		return jsonresponse.BadRequest(fiberCtx, errParse.Error())
 	}
 
-	errCluster := consensus.ClusterOperation(a.Consensus, payload, "SET")
+	errCluster := consensus.ClusterOperation(a.Consensus, payload, operationType)
 	if errCluster != nil {
 		return jsonresponse.ServerError(fiberCtx, errCluster.Error())
 	}
 
 	return jsonresponse.OK(fiberCtx, "data persisted successfully", "")
+}
+
+func (a *ApiCtx) storeDelete(fiberCtx *fiber.Ctx) error {
+	const operationType = "DELETE"
+
+	payload := new(fsm.Payload)
+	errParse := fiberparser.ParseAndValidate(fiberCtx, payload)
+	if errParse != nil {
+		return jsonresponse.BadRequest(fiberCtx, errParse.Error())
+	}
+
+	errCluster := consensus.ClusterOperation(a.Consensus, payload, operationType)
+	if errCluster != nil {
+		return jsonresponse.ServerError(fiberCtx, errCluster.Error())
+	}
+
+	return jsonresponse.OK(fiberCtx, "data deleted successfully", "")
 }
