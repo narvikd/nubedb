@@ -7,6 +7,7 @@ import (
 	"github.com/narvikd/fiberparser"
 	"nubedb/api/jsonresponse"
 	"nubedb/consensus/fsm"
+	"strings"
 	"time"
 )
 
@@ -17,14 +18,14 @@ func (a *ApiCtx) storeGet(fiberCtx *fiber.Ctx) error {
 		return jsonresponse.BadRequest(fiberCtx, errParse.Error())
 	}
 
-	value, exists, errGet := a.FSM.Get(payload.Key)
+	value, errGet := a.FSM.Get(payload.Key)
 	if errGet != nil {
+		if strings.Contains(strings.ToLower(errGet.Error()), "not found") {
+			return jsonresponse.NotFound(fiberCtx, "key doesn't exist")
+		}
 		return jsonresponse.ServerError(fiberCtx, "couldn't get key from DB: "+errGet.Error())
 	}
 
-	if !exists {
-		return jsonresponse.NotFound(fiberCtx, "key doesn't exist")
-	}
 	return jsonresponse.OK(fiberCtx, "data retrieved successfully", value)
 }
 
