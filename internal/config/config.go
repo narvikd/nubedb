@@ -10,7 +10,6 @@ type Config struct {
 	Host             string
 	ApiPort          int
 	ApiAddress       string
-	ConsensusHost    string
 	ConsensusPort    int
 	ConsensusAddress string
 }
