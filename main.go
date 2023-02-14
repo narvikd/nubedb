@@ -3,8 +3,8 @@ package main
 import (
 	"github.com/gofiber/fiber/v2"
 	"log"
-	"nubedb/api/middleware"
-	"nubedb/api/route"
+	"nubedb/api/rest/middleware"
+	"nubedb/api/rest/route"
 	"nubedb/internal/app"
 	"nubedb/internal/config"
 )

@@ -6,7 +6,7 @@ import (
 	"github.com/hashicorp/raft"
 	"github.com/narvikd/errorskit"
 	"github.com/narvikd/fiberparser"
-	"nubedb/api/jsonresponse"
+	"nubedb/api/rest/jsonresponse"
 	"nubedb/cluster/consensus"
 )
 

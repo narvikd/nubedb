@@ -3,7 +3,7 @@ package route
 import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/narvikd/fiberparser"
-	"nubedb/api/jsonresponse"
+	"nubedb/api/rest/jsonresponse"
 	"nubedb/cluster"
 	"nubedb/cluster/consensus/fsm"
 	"strings"
