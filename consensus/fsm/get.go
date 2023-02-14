@@ -11,6 +11,7 @@ func (dbFSM DatabaseFSM) Get(k string) (any, error) {
 	dbResultValue := make([]byte, 0)
 
 	txn := dbFSM.db.NewTransaction(false)
+	defer txn.Discard()
 	dbResult, errGet := txn.Get([]byte(k))
 	if errGet != nil {
 		return nil, errGet

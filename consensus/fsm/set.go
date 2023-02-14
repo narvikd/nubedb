@@ -17,9 +17,9 @@ func (dbFSM DatabaseFSM) set(k string, value any) error {
 	}
 
 	txn := dbFSM.db.NewTransaction(true)
+	defer txn.Discard()
 	errSet := txn.Set([]byte(k), dbValue)
 	if errSet != nil {
-		defer txn.Discard()
 		return errSet
 	}
 

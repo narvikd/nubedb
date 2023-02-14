@@ -4,6 +4,7 @@ import "github.com/narvikd/errorskit"
 
 func (dbFSM DatabaseFSM) delete(k string) error {
 	txn := dbFSM.db.NewTransaction(true)
+	defer txn.Discard()
 	err := txn.Delete([]byte(k))
 	if err != nil {
 		defer txn.Discard()
