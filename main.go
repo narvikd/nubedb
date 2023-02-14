@@ -12,44 +12,44 @@ import (
 )
 
 func main() {
-	start(config.New())
+	a := app.NewApp(config.New())
+	start(a)
 }
 
-func start(cfg config.Config) {
+func start(a *app.App) {
 	var wg sync.WaitGroup
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		startApiRest(cfg)
+		startApiRest(a)
 	}()
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		startApiProto(cfg)
+		startApiProto(a)
 	}()
 
 	wg.Wait()
 }
 
-func startApiProto(cfg config.Config) {
-	log.Println("Starting proto server...")
-	err := protoserver.Start(cfg)
+func startApiProto(a *app.App) {
+	log.Println("[proto] Starting proto server...")
+	err := protoserver.Start(a)
 	if err != nil {
 		log.Fatalln(err)
 	}
 }
 
-func startApiRest(cfg config.Config) {
-	errListen := newApiRest(cfg).Listen(cfg.ApiAddress)
+func startApiRest(a *app.App) {
+	errListen := newApiRest(a).Listen(a.Config.ApiAddress)
 	if errListen != nil {
 		log.Fatalln("api can't be started:", errListen)
 	}
 }
 
-func newApiRest(cfg config.Config) *fiber.App {
-	a := app.NewApp(cfg)
+func newApiRest(a *app.App) *fiber.App {
 	middleware.InitMiddlewares(a.HttpServer)
 	route.Register(a)
 	return a.HttpServer
