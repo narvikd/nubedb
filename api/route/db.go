@@ -53,14 +53,6 @@ func (a *ApiCtx) storeDelete(fiberCtx *fiber.Ctx) error {
 		return jsonresponse.BadRequest(fiberCtx, errParse.Error())
 	}
 
-	_, errGet := a.FSM.Get(payload.Key)
-	if errGet != nil {
-		if strings.Contains(strings.ToLower(errGet.Error()), "not found") {
-			return jsonresponse.NotFound(fiberCtx, "key doesn't exist")
-		}
-		return jsonresponse.ServerError(fiberCtx, "couldn't check if key was on DB: "+errGet.Error())
-	}
-
 	errCluster := consensus.ClusterOperation(a.Consensus, payload, operationType)
 	if errCluster != nil {
 		return jsonresponse.ServerError(fiberCtx, errCluster.Error())
