@@ -7,7 +7,7 @@ import (
 	"github.com/narvikd/errorskit"
 	"github.com/narvikd/fiberparser"
 	"nubedb/api/jsonresponse"
-	"nubedb/consensus"
+	"nubedb/cluster/consensus"
 )
 
 func (a *ApiCtx) consensusJoin(fiberCtx *fiber.Ctx) error {

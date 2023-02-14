@@ -4,7 +4,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/narvikd/fiberparser"
 	"log"
-	"nubedb/consensus"
+	"nubedb/cluster/consensus"
 	"nubedb/internal/config"
 	"time"
 )

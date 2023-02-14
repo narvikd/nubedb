@@ -4,8 +4,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/narvikd/fiberparser"
 	"nubedb/api/jsonresponse"
-	"nubedb/consensus"
-	"nubedb/consensus/fsm"
+	"nubedb/cluster/consensus"
+	"nubedb/cluster/consensus/fsm"
 	"strings"
 )
 

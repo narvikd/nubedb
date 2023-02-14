@@ -5,7 +5,7 @@ import (
 	"errors"
 	"github.com/hashicorp/raft"
 	"github.com/narvikd/errorskit"
-	"nubedb/consensus/fsm"
+	"nubedb/cluster/consensus/fsm"
 	"time"
 )
 

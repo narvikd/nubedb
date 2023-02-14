@@ -7,7 +7,7 @@ import (
 	"github.com/narvikd/errorskit"
 	"github.com/narvikd/filekit"
 	"net"
-	"nubedb/consensus/fsm"
+	"nubedb/cluster/consensus/fsm"
 	"os"
 	"path"
 	"path/filepath"

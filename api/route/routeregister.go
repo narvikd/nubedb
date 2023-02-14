@@ -3,7 +3,7 @@ package route
 import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/hashicorp/raft"
-	"nubedb/consensus/fsm"
+	"nubedb/cluster/consensus/fsm"
 	"nubedb/internal/app"
 )
 
