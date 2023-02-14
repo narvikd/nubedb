@@ -7,7 +7,6 @@ func (dbFSM DatabaseFSM) delete(k string) error {
 	defer txn.Discard()
 	err := txn.Delete([]byte(k))
 	if err != nil {
-		defer txn.Discard()
 		return err
 	}
 
