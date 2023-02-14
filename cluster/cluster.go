@@ -1,4 +1,4 @@
-package consensus
+package cluster
 
 import (
 	"encoding/json"
@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func ClusterOperation(consensus *raft.Raft, payload *fsm.Payload) error {
+func Execute(consensus *raft.Raft, payload *fsm.Payload) error {
 	if consensus.State() == raft.Leader {
 		return applyFuture(consensus, payload)
 	}

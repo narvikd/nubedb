@@ -4,7 +4,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/narvikd/fiberparser"
 	"nubedb/api/jsonresponse"
-	"nubedb/cluster/consensus"
+	"nubedb/cluster"
 	"nubedb/cluster/consensus/fsm"
 	"strings"
 )
@@ -37,7 +37,7 @@ func (a *ApiCtx) storeSet(fiberCtx *fiber.Ctx) error {
 	}
 	payload.Operation = operationType
 
-	errCluster := consensus.ClusterOperation(a.Consensus, payload)
+	errCluster := cluster.Execute(a.Consensus, payload)
 	if errCluster != nil {
 		return jsonresponse.ServerError(fiberCtx, errCluster.Error())
 	}
@@ -55,7 +55,7 @@ func (a *ApiCtx) storeDelete(fiberCtx *fiber.Ctx) error {
 	}
 	payload.Operation = operationType
 
-	errCluster := consensus.ClusterOperation(a.Consensus, payload)
+	errCluster := cluster.Execute(a.Consensus, payload)
 	if errCluster != nil {
 		if strings.Contains(strings.ToLower(errCluster.Error()), "key not found") {
 			return jsonresponse.NotFound(fiberCtx, "key doesn't exist")
