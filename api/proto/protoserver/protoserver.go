@@ -2,24 +2,39 @@ package protoserver
 
 import (
 	"fmt"
+	"github.com/hashicorp/raft"
 	"google.golang.org/grpc"
 	"net"
 	"nubedb/api/proto"
-	"nubedb/internal/config"
+	"nubedb/cluster/consensus/fsm"
+	"nubedb/internal/app"
 )
 
 type server struct {
 	proto.UnimplementedServiceServer
+	Consensus *raft.Raft
+	FSM       *fsm.DatabaseFSM
 }
 
-func Start(cfg config.Config) error {
-	listen, errListen := net.Listen("tcp", makeAddr(cfg.Host, cfg.GrpcPort))
+func Start(a *app.App) error {
+	listen, errListen := net.Listen("tcp", makeAddr(a.Config.Host, a.Config.GrpcPort))
 	if errListen != nil {
 		return errListen
 	}
-	srv := grpc.NewServer()
-	proto.RegisterServiceServer(srv, &server{})
-	return srv.Serve(listen)
+	srvModel := new(server)
+
+	protoServer := grpc.NewServer()
+	proto.RegisterServiceServer(protoServer, srvModel)
+
+	errServe := protoServer.Serve(listen)
+	if errServe != nil {
+		return errServe
+	}
+
+	srvModel.Consensus = a.Node.Consensus
+	srvModel.FSM = a.Node.FSM
+
+	return nil
 }
 
 func makeAddr(host string, port int) string {
