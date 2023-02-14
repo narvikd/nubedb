@@ -16,6 +16,9 @@ NubeDB is a simple distributed key-value database that uses the Raft consensus a
   * [Using the API](#using-the-api)
     * [Consensus](#consensus)
     * [Database](#database)
+      * [Set](#set)
+      * [Get](#get)
+      * [Delete](#delete)
 * [Testing the cluster](#testing-the-cluster)
 
 
@@ -72,6 +75,7 @@ Check consensus state:
 
 
 #### Database
+##### Set
 To set a value for a key, you can send a `POST` request to the API:
 <img width="1920" alt="Set Value" src="https://user-images.githubusercontent.com/84069271/218323894-50175fd1-2fa7-4c24-9b0f-c6e0feedb759.png">
 
@@ -80,6 +84,7 @@ Please note that this can only be done in the `Leader` node. If you attempt to d
 <img width="1920" alt="Non Leader trying to store" src="https://user-images.githubusercontent.com/84069271/218324097-8f8a3927-0a55-40db-b50a-16008d10aa69.png">
 
 
+##### Get
 To retrieve a value for a key, you can send a `GET` request to any of the nodes, it doesn't need to be a `Leader`:
 <img width="1920" alt="Get a key on leader" src="https://user-images.githubusercontent.com/84069271/218324205-d8d9cbd2-5248-499a-b95f-38ad5eba55c1.png">
 
@@ -87,9 +92,19 @@ To retrieve a value for a key, you can send a `GET` request to any of the nodes,
 <img width="1920" alt="Get a key on follower" src="https://user-images.githubusercontent.com/84069271/218324242-a4e66d74-19b4-4148-9322-6b3eaf4d83c7.png">
 
 
+If it doesn't exist:
+<img width="1920" alt="Get key doesn't exist" src="https://user-images.githubusercontent.com/84069271/218324306-9bb85f07-01e9-49f6-b848-00b5458343fb.png">
+
+
+##### Delete
+To delete a key, you can send a `DELETE` request to the `Leader`:
+<img width="1920" alt="Delete key" src="https://user-images.githubusercontent.com/84069271/218793049-5dc0669b-ba19-4415-8a53-4e409ca573cf.png">
+
 
 If it doesn't exist:
-<img width="1920" alt="Key doesn't exist" src="https://user-images.githubusercontent.com/84069271/218324306-9bb85f07-01e9-49f6-b848-00b5458343fb.png">
+<img width="1920" alt="Delete key doesn't exist" src="https://user-images.githubusercontent.com/84069271/218792895-8bf28fad-6dc0-45b9-9210-0aacfe460f4f.png">
+
+
 
 
 ## Testing the cluster
