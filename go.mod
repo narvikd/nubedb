@@ -7,7 +7,7 @@ require (
 	github.com/gofiber/fiber/v2 v2.42.0
 	github.com/hashicorp/go-hclog v1.4.0
 	github.com/hashicorp/raft v1.3.11
-	github.com/hashicorp/raft-boltdb v0.0.0-20230125174641-2a8082862702
+	github.com/hashicorp/raft-boltdb/v2 v2.2.2
 	github.com/narvikd/errorskit v1.0.0
 	github.com/narvikd/fiberparser v1.1.1
 	github.com/narvikd/filekit v1.0.1
@@ -17,7 +17,7 @@ require (
 
 require (
 	github.com/andybalholm/brotli v1.0.4 // indirect
-	github.com/armon/go-metrics v0.3.8 // indirect
+	github.com/armon/go-metrics v0.0.0-20190430140413-ec5e00d3c878 // indirect
 	github.com/boltdb/bolt v1.3.1 // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
@@ -51,6 +51,7 @@ require (
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.44.0 // indirect
 	github.com/valyala/tcplisten v1.0.0 // indirect
+	go.etcd.io/bbolt v1.3.5 // indirect
 	go.opencensus.io v0.22.5 // indirect
 	golang.org/x/crypto v0.0.0-20220214200702-86341886e292 // indirect
 	golang.org/x/net v0.5.0 // indirect

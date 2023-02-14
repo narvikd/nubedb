@@ -3,7 +3,7 @@ package consensus
 import (
 	"github.com/dgraph-io/badger/v3"
 	"github.com/hashicorp/raft"
-	"github.com/hashicorp/raft-boltdb"
+	"github.com/hashicorp/raft-boltdb/v2"
 	"github.com/narvikd/errorskit"
 	"github.com/narvikd/filekit"
 	"net"
