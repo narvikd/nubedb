@@ -30,5 +30,8 @@ func (a *ApiCtx) consensusJoin(fiberCtx *fiber.Ctx) error {
 }
 
 func (a *ApiCtx) consensusState(fiberCtx *fiber.Ctx) error {
-	return jsonresponse.OK(fiberCtx, "consensus state retrieved successfully", a.Consensus.Stats())
+	stats := a.Consensus.Stats()
+	address, id := a.Consensus.LeaderWithID()
+	stats["leader"] = fmt.Sprintf("Address: %s Leader ID: %s", address, id)
+	return jsonresponse.OK(fiberCtx, "consensus state retrieved successfully", stats)
 }

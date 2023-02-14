@@ -2,12 +2,10 @@ package app
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"github.com/hashicorp/raft"
 	"github.com/narvikd/fiberparser"
 	"log"
 	"nubedb/consensus"
 	"nubedb/internal/config"
-	"sync"
 	"time"
 )
 
@@ -16,14 +14,11 @@ import (
 // This way the application can avoid the use of global variables.
 type App struct {
 	HttpServer *fiber.App
-	Consensus  *raft.Raft
-	DB         *sync.Map
+	Node       *consensus.Node
 }
 
 func NewApp(cfg config.Config) *App {
-	db := &sync.Map{}
-
-	consen, errConsensus := consensus.New(db, cfg.ID, cfg.ConsensusAddress)
+	node, errConsensus := consensus.New(cfg.ID, cfg.ConsensusAddress)
 	if errConsensus != nil {
 		log.Fatalln(errConsensus)
 	}
@@ -41,7 +36,6 @@ func NewApp(cfg config.Config) *App {
 
 	return &App{
 		HttpServer: serv,
-		Consensus:  consen,
-		DB:         db,
+		Node:       node,
 	}
 }

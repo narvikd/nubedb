@@ -3,19 +3,17 @@ package fsm
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/dgraph-io/badger/v3"
 	"github.com/hashicorp/raft"
 	"github.com/narvikd/errorskit"
 	"io"
-	"sync"
 )
 
-type Model struct {
-	DB *sync.Map
+type DatabaseFSM struct {
+	db *badger.DB
 }
 
-type snapshot struct {
-	m *sync.Map
-}
+type snapshot struct{}
 
 // Payload is the Payload sent for use in raft.Apply
 type Payload struct {
@@ -24,17 +22,17 @@ type Payload struct {
 	Operation string `json:"operation"`
 }
 
-// ApplyResponse represents the response from raft's apply
-type ApplyResponse struct {
+// ApplyRes represents the response from raft's apply
+type ApplyRes struct {
+	Data  any
 	Error error
-	Data  interface{}
 }
 
-func New(db *sync.Map) *Model {
-	return &Model{DB: db}
+func New(db *badger.DB) *DatabaseFSM {
+	return &DatabaseFSM{db: db}
 }
 
-func (m *Model) Apply(log *raft.Log) any {
+func (dbFSM DatabaseFSM) Apply(log *raft.Log) any {
 	switch log.Type {
 	case raft.LogCommand:
 		p := new(Payload)
@@ -45,54 +43,60 @@ func (m *Model) Apply(log *raft.Log) any {
 
 		switch p.Operation {
 		case "SET":
-			m.DB.Store(p.Key, p.Value)
-			return &ApplyResponse{}
+			return &ApplyRes{
+				Error: dbFSM.set(p.Key, p.Value),
+			}
+		case "DELETE":
+			return &ApplyRes{
+				Error: dbFSM.delete(p.Key),
+			}
 		default:
-			return &ApplyResponse{
+			return &ApplyRes{
 				Error: fmt.Errorf("operation type not recognized: %v", p.Operation),
 			}
 		}
 	default:
-		return fmt.Errorf("raft type not recognized: %v", log.Type)
+		return fmt.Errorf("raft command not recognized: %v", log.Type)
 	}
 }
 
-func (m *Model) Snapshot() (raft.FSMSnapshot, error) {
-	return snapshot{m.DB}, nil
-}
-
-func (m *Model) Restore(snap io.ReadCloser) error {
+func (dbFSM DatabaseFSM) Restore(snap io.ReadCloser) error {
 	d := json.NewDecoder(snap)
 	for d.More() {
-		mapper := map[string]any{}
-		errDecode := d.Decode(&mapper)
+		dbValue := new(Payload)
+		errDecode := d.Decode(&dbValue)
 		if errDecode != nil {
 			return errorskit.Wrap(errDecode, "couldn't decode snapshot")
 		}
 
-		for k, v := range mapper {
-			m.DB.Store(k, v)
+		errSet := dbFSM.set(dbValue.Key, dbValue.Value)
+		if errSet != nil {
+			return errorskit.Wrap(errSet, "couldn't restore key while restoring a snapshot")
 		}
+	}
+
+	// Once the loop has completed, the program has to call the Token method on the decoder to check
+	// if it finds the closing bracket from the data stream.
+	// This particular token should not return an error, meaning that the program has reached the end of the data stream
+	// and all other tokens have been extracted.
+	// If it indeed returns an error, it would mean that an unexpected token was encountered during the Snapshot
+	// restoration, such as a closing brace in the wrong place.
+	// It could also be an indicator that the end of the input stream was reached before the closing bracket was found.
+	_, errToken := d.Token()
+	if errToken != nil && errToken != io.EOF { // If we reach the end of the stream, it isn't an error
+		return errorskit.Wrap(errToken, "couldn't restore snapshot due to json malformation")
 	}
 
 	return snap.Close()
 }
 
-func (s snapshot) Persist(sink raft.SnapshotSink) error {
-	mapper := map[string]any{}
-	s.m.Range(func(k, v any) bool {
-		mapper[k.(string)] = v
-		return true
-	})
+// Snapshot isn't needed because BadgerDB persists data when Apply is called.
+func (dbFSM DatabaseFSM) Snapshot() (raft.FSMSnapshot, error) {
+	return snapshot{}, nil
+}
 
-	defer sink.Close()
-
-	err := json.NewEncoder(sink).Encode(mapper)
-	if err != nil {
-		_ = sink.Cancel()
-		return errorskit.Wrap(err, "couldn't encode snapshot into map")
-	}
-
+// Persist isn't needed because BadgerDB persists data when Apply is called.
+func (s snapshot) Persist(_ raft.SnapshotSink) error {
 	return nil
 }
 
