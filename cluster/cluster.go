@@ -9,6 +9,8 @@ import (
 	"time"
 )
 
+const errNodeNotALeader = "node is not a leader"
+
 func Execute(consensus *raft.Raft, payload *fsm.Payload) error {
 	data, errMarshal := json.Marshal(&payload)
 	if errMarshal != nil {
@@ -16,14 +18,18 @@ func Execute(consensus *raft.Raft, payload *fsm.Payload) error {
 	}
 
 	if consensus.State() == raft.Leader {
-		return applyFuture(consensus, data)
+		return ApplyLeaderFuture(consensus, data)
 	}
 
-	return errors.New("node is not a leader")
+	return errors.New(errNodeNotALeader)
 }
 
-func applyFuture(consensus *raft.Raft, data []byte) error {
+func ApplyLeaderFuture(consensus *raft.Raft, data []byte) error {
 	const timeout = 500 * time.Millisecond
+
+	if consensus.State() != raft.Leader {
+		return errors.New(errNodeNotALeader)
+	}
 
 	future := consensus.Apply(data, timeout)
 	if future.Error() != nil {
