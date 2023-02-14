@@ -13,7 +13,6 @@ type Config struct {
 	ConsensusPort    int
 	ConsensusAddress string
 	GrpcPort         int
-	GrpcAddress      string
 }
 
 func New() Config {
@@ -32,7 +31,6 @@ func New() Config {
 		ConsensusPort:    *consensusPort,
 		ConsensusAddress: makeAddr(*host, *consensusPort),
 		GrpcPort:         *grpcPort,
-		GrpcAddress:      makeAddr(*host, *grpcPort),
 	}
 }
 
