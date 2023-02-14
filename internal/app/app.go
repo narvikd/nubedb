@@ -15,6 +15,7 @@ import (
 type App struct {
 	HttpServer *fiber.App
 	Node       *consensus.Node
+	Config     config.Config
 }
 
 func NewApp(cfg config.Config) *App {
@@ -37,5 +38,6 @@ func NewApp(cfg config.Config) *App {
 	return &App{
 		HttpServer: serv,
 		Node:       node,
+		Config:     cfg,
 	}
 }
