@@ -10,20 +10,20 @@ import (
 )
 
 func Execute(consensus *raft.Raft, payload *fsm.Payload) error {
+	data, errMarshal := json.Marshal(&payload)
+	if errMarshal != nil {
+		return errorskit.Wrap(errMarshal, "couldn't marshal data to send it to the DB cluster")
+	}
+
 	if consensus.State() == raft.Leader {
-		return applyFuture(consensus, payload)
+		return applyFuture(consensus, data)
 	}
 
 	return errors.New("node is not a leader")
 }
 
-func applyFuture(consensus *raft.Raft, payload *fsm.Payload) error {
+func applyFuture(consensus *raft.Raft, data []byte) error {
 	const timeout = 500 * time.Millisecond
-
-	data, errMarshal := json.Marshal(&payload)
-	if errMarshal != nil {
-		return errorskit.Wrap(errMarshal, "couldn't marshal data to send it to DB cluster")
-	}
 
 	future := consensus.Apply(data, timeout)
 	if future.Error() != nil {
