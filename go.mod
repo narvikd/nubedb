@@ -5,6 +5,7 @@ go 1.20
 require (
 	github.com/dgraph-io/badger/v3 v3.2103.5
 	github.com/gofiber/fiber/v2 v2.42.0
+	github.com/hashicorp/go-hclog v0.9.1
 	github.com/hashicorp/raft v1.3.11
 	github.com/hashicorp/raft-boltdb v0.0.0-20230125174641-2a8082862702
 	github.com/narvikd/errorskit v1.0.0
@@ -30,7 +31,6 @@ require (
 	github.com/golang/snappy v0.0.3 // indirect
 	github.com/google/flatbuffers v1.12.1 // indirect
 	github.com/google/uuid v1.3.0 // indirect
-	github.com/hashicorp/go-hclog v0.9.1 // indirect
 	github.com/hashicorp/go-immutable-radix v1.0.0 // indirect
 	github.com/hashicorp/go-msgpack v0.5.5 // indirect
 	github.com/hashicorp/golang-lru v0.5.0 // indirect
