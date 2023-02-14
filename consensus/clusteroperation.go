@@ -9,13 +9,16 @@ import (
 	"time"
 )
 
-func ClusterOperation(consensus *raft.Raft, payload *fsm.Payload, operationType string) error {
-	const timeout = 500 * time.Millisecond
-	if consensus.State() != raft.Leader {
-		return errors.New("node is not a leader")
+func ClusterOperation(consensus *raft.Raft, payload *fsm.Payload) error {
+	if consensus.State() == raft.Leader {
+		return applyFuture(consensus, payload)
 	}
 
-	payload.Operation = operationType
+	return errors.New("node is not a leader")
+}
+
+func applyFuture(consensus *raft.Raft, payload *fsm.Payload) error {
+	const timeout = 500 * time.Millisecond
 
 	data, errMarshal := json.Marshal(&payload)
 	if errMarshal != nil {
