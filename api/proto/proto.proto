@@ -1,0 +1,15 @@
+syntax = "proto3";
+package grpc;
+option go_package = "./proto";
+
+message Request {
+  bytes payload = 1;
+}
+
+message Response {
+  string error = 1;
+}
+
+service Service {
+  rpc LeaderApplyFuture(Request) returns (Response);
+}
