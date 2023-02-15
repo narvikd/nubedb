@@ -38,7 +38,7 @@ func startApiProto(a *app.App) {
 	log.Println("[proto] Starting proto server...")
 	err := protoserver.Start(a)
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalln("proto api can't be started:", err)
 	}
 }
 
