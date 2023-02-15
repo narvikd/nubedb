@@ -18,8 +18,8 @@ type Node struct {
 	Consensus    *raft.Raft
 	FSM          *fsm.DatabaseFSM
 	ID           string `json:"id" validate:"required"`
-	Address      string `json:"address" validate:"required"`
-	dir          string
+	Address      string `json:"address"`
+	Dir          string
 	storageDir   string
 	snapshotsDir string
 	consensusDB  string
@@ -52,13 +52,13 @@ func newNode(id string, address string) (*Node, error) {
 		FSM:          f,
 		ID:           id,
 		Address:      address,
-		dir:          dir,
+		Dir:          dir,
 		storageDir:   storageDir,
 		snapshotsDir: dir, // This isn't a typo, it will create a snapshots dir inside the dir automatically
 		consensusDB:  filepath.Join(dir, "consensus.db"),
 	}
 
-	errDir := filekit.CreateDirs(n.dir, false)
+	errDir := filekit.CreateDirs(n.Dir, false)
 	if errDir != nil {
 		return nil, errDir
 	}

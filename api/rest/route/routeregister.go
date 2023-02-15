@@ -39,4 +39,5 @@ func routes(app *fiber.App, route *ApiCtx) {
 
 	app.Get("/consensus", route.consensusState)
 	app.Post("/consensus", route.consensusJoin)
+	app.Delete("/consensus", route.consensusRemove)
 }
