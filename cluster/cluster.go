@@ -15,6 +15,10 @@ import (
 	"time"
 )
 
+const (
+	errDBCluster = "consensus returned an error when trying to Apply an order."
+)
+
 func Execute(cfg config.Config, consensus *raft.Raft, payload *fsm.Payload) error {
 	payloadData, errMarshal := json.Marshal(&payload)
 	if errMarshal != nil {
@@ -33,12 +37,12 @@ func applyLeaderFuture(consensus *raft.Raft, payloadData []byte) error {
 
 	future := consensus.Apply(payloadData, timeout)
 	if future.Error() != nil {
-		return errorskit.Wrap(future.Error(), "couldn't persist data to DB Cluster")
+		return errorskit.Wrap(future.Error(), errDBCluster+" At future")
 	}
 
 	response := future.Response().(*fsm.ApplyRes)
 	if response.Error != nil {
-		return errorskit.Wrap(response.Error, "DB cluster returned an error when trying to persist data to it")
+		return errorskit.Wrap(response.Error, errDBCluster+" At response")
 	}
 
 	return nil
@@ -47,7 +51,11 @@ func applyLeaderFuture(consensus *raft.Raft, payloadData []byte) error {
 func handleForwardLeaderFuture(cfg config.Config, consensus *raft.Raft, payload *fsm.Payload) error {
 	_, leaderID := consensus.LeaderWithID()
 	leaderCfg := cfg.Nodes[string(leaderID)]
-	return forwardLeaderFuture(leaderCfg, payload)
+	err := forwardLeaderFuture(leaderCfg, payload)
+	if err != nil {
+		return errorskit.Wrap(err, errDBCluster+" At handling forward")
+	}
+	return nil
 }
 
 func forwardLeaderFuture(leaderCfg config.NodeCfg, payload *fsm.Payload) error {
