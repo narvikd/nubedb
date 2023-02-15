@@ -129,7 +129,7 @@ func handleBootstrapping(a *app.App) {
 	}
 
 	if len(leaders) != 3 {
-		log.Println("Leader: No need to bootstrap the cluster...")
+		log.Println("No need to bootstrap the cluster...")
 		return
 	}
 
