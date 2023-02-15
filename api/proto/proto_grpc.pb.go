@@ -22,7 +22,8 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ServiceClient interface {
-	ExecuteOnLeader(ctx context.Context, in *Request, opts ...grpc.CallOption) (*Empty, error)
+	ExecuteOnLeader(ctx context.Context, in *ExecuteOnLeaderRequest, opts ...grpc.CallOption) (*Empty, error)
+	IsLeader(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*IsLeaderResponse, error)
 }
 
 type serviceClient struct {
@@ -33,9 +34,18 @@ func NewServiceClient(cc grpc.ClientConnInterface) ServiceClient {
 	return &serviceClient{cc}
 }
 
-func (c *serviceClient) ExecuteOnLeader(ctx context.Context, in *Request, opts ...grpc.CallOption) (*Empty, error) {
+func (c *serviceClient) ExecuteOnLeader(ctx context.Context, in *ExecuteOnLeaderRequest, opts ...grpc.CallOption) (*Empty, error) {
 	out := new(Empty)
 	err := c.cc.Invoke(ctx, "/proto.Service/ExecuteOnLeader", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *serviceClient) IsLeader(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*IsLeaderResponse, error) {
+	out := new(IsLeaderResponse)
+	err := c.cc.Invoke(ctx, "/proto.Service/IsLeader", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +56,8 @@ func (c *serviceClient) ExecuteOnLeader(ctx context.Context, in *Request, opts .
 // All implementations must embed UnimplementedServiceServer
 // for forward compatibility
 type ServiceServer interface {
-	ExecuteOnLeader(context.Context, *Request) (*Empty, error)
+	ExecuteOnLeader(context.Context, *ExecuteOnLeaderRequest) (*Empty, error)
+	IsLeader(context.Context, *Empty) (*IsLeaderResponse, error)
 	mustEmbedUnimplementedServiceServer()
 }
 
@@ -54,8 +65,11 @@ type ServiceServer interface {
 type UnimplementedServiceServer struct {
 }
 
-func (UnimplementedServiceServer) ExecuteOnLeader(context.Context, *Request) (*Empty, error) {
+func (UnimplementedServiceServer) ExecuteOnLeader(context.Context, *ExecuteOnLeaderRequest) (*Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ExecuteOnLeader not implemented")
+}
+func (UnimplementedServiceServer) IsLeader(context.Context, *Empty) (*IsLeaderResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method IsLeader not implemented")
 }
 func (UnimplementedServiceServer) mustEmbedUnimplementedServiceServer() {}
 
@@ -71,7 +85,7 @@ func RegisterServiceServer(s grpc.ServiceRegistrar, srv ServiceServer) {
 }
 
 func _Service_ExecuteOnLeader_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Request)
+	in := new(ExecuteOnLeaderRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -83,7 +97,25 @@ func _Service_ExecuteOnLeader_Handler(srv interface{}, ctx context.Context, dec 
 		FullMethod: "/proto.Service/ExecuteOnLeader",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ServiceServer).ExecuteOnLeader(ctx, req.(*Request))
+		return srv.(ServiceServer).ExecuteOnLeader(ctx, req.(*ExecuteOnLeaderRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Service_IsLeader_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ServiceServer).IsLeader(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.Service/IsLeader",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ServiceServer).IsLeader(ctx, req.(*Empty))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -98,6 +130,10 @@ var Service_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ExecuteOnLeader",
 			Handler:    _Service_ExecuteOnLeader_Handler,
+		},
+		{
+			MethodName: "IsLeader",
+			Handler:    _Service_IsLeader_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

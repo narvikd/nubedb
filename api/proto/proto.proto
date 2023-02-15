@@ -2,12 +2,17 @@ syntax = "proto3";
 package proto;
 option go_package = "./proto";
 
-message Request {
+message ExecuteOnLeaderRequest {
   bytes payload = 1;
 }
 
 message Empty {}
 
+message IsLeaderResponse {
+  bool isLeader = 1;
+}
+
 service Service {
-  rpc ExecuteOnLeader(Request) returns (Empty);
+  rpc ExecuteOnLeader(ExecuteOnLeaderRequest) returns (Empty);
+  rpc IsLeader(Empty) returns (IsLeaderResponse);
 }
