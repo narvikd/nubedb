@@ -10,27 +10,34 @@ import (
 
 type filterWriter struct {
 	innerWriter io.Writer
-	filter      string
+	filters     []string
 }
 
 func (fw *filterWriter) Write(input []byte) (n int, err error) {
-	if strings.Contains(string(input), fw.filter) {
-		return len(input), nil
+	for _, filter := range fw.filters {
+		if strings.Contains(string(input), filter) {
+			return len(input), nil
+		}
 	}
 	return fw.innerWriter.Write(input)
 }
 
-func newFilterWriter(innerWriter io.Writer, filter string) *filterWriter {
+func newFilterWriter(innerWriter io.Writer, filters []string) *filterWriter {
 	return &filterWriter{
 		innerWriter: innerWriter,
-		filter:      filter,
+		filters:     filters,
 	}
 }
 
-func setConsensusLogger(cfg *raft.Config) {
-	// Suppresses "nothing new to snapshot" errors
-	fw := newFilterWriter(os.Stderr, raft.ErrNothingNewToSnapshot.Error())
+// Suppresses raft's errors that should be debug errors
+func newConsensusFilterWriter() *filterWriter {
+	const errCannotSnapshotNow = "cannot restore snapshot now, wait until the configuration entry at"
+	filters := []string{raft.ErrNothingNewToSnapshot.Error(), errCannotSnapshotNow}
+	return newFilterWriter(os.Stderr, filters)
+}
 
+func setConsensusLogger(cfg *raft.Config) {
+	fw := newConsensusFilterWriter()
 	cfg.LogOutput = fw
 	cfg.Logger = hclog.New(&hclog.LoggerOptions{
 		Name:   "consensus",
