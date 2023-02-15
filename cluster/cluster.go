@@ -3,6 +3,7 @@ package cluster
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"github.com/hashicorp/raft"
 	"github.com/narvikd/errorskit"
 	"google.golang.org/grpc"
@@ -28,11 +29,15 @@ func Execute(cfg config.Config, consensus *raft.Raft, payload *fsm.Payload) erro
 		return handleForwardLeaderFuture(cfg, consensus, payload)
 	}
 
-	return applyLeaderFuture(consensus, payloadData)
+	return ApplyLeaderFuture(consensus, payloadData)
 }
 
-func applyLeaderFuture(consensus *raft.Raft, payloadData []byte) error {
+func ApplyLeaderFuture(consensus *raft.Raft, payloadData []byte) error {
 	const timeout = 500 * time.Millisecond
+
+	if consensus.State() != raft.Leader {
+		return errors.New("node is not a leader")
+	}
 
 	future := consensus.Apply(payloadData, timeout)
 	if future.Error() != nil {
