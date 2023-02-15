@@ -12,7 +12,7 @@ import (
 
 func LaunchObserver(a *app.App) {
 	log.Println("observer launched, sleeping...")
-	time.Sleep(20 * time.Second)
+	time.Sleep(10 * time.Second)
 	log.Println("observer awake, launching...")
 	go func() {
 		for {
@@ -23,7 +23,7 @@ func LaunchObserver(a *app.App) {
 }
 
 func handleUnblockCandidate(a *app.App) {
-	const timeout = 1 * time.Minute
+	const timeout = 20 * time.Second
 	if a.Node.Consensus.State() == raft.Candidate {
 		time.Sleep(timeout)
 		// If a minute has passed, and I'm still a candidate, there's a problem
