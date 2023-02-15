@@ -32,10 +32,5 @@ func Start(a *app.App) error {
 	protoServer := grpc.NewServer()
 	proto.RegisterServiceServer(protoServer, srvModel)
 
-	errServe := protoServer.Serve(listen)
-	if errServe != nil {
-		return errServe
-	}
-
-	return nil
+	return protoServer.Serve(listen)
 }
