@@ -27,6 +27,12 @@ func Launch(a *app.App) {
 		}
 	}()
 
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		handleBootstrapping(a)
+	}()
+
 	wg.Wait()
 }
 
@@ -63,6 +69,9 @@ func unblockCandidate(a *app.App) {
 			leader = nodeCfg
 			break
 		}
+
+		// Sleep between requests to not saturate the network too quickly
+		time.Sleep(300 * time.Millisecond)
 	}
 
 	if leader.ID == "" {
@@ -90,4 +99,57 @@ func unblockCandidate(a *app.App) {
 	}
 
 	log.Fatalln("Node successfully reset. Restarting...")
+}
+
+func handleBootstrapping(a *app.App) {
+	var leaders []config.NodeCfg
+
+	if a.Node.Consensus.State() != raft.Leader {
+		return
+	}
+
+	if a.Config.CurrentNode.ID != "node1" {
+		return
+	}
+
+	log.Println("Checking if cluster needs to be bootstrapped...")
+
+	for _, nodeCfg := range a.Config.Nodes {
+		b, errComms := cluster.IsLeader(nodeCfg.GrpcAddress)
+		if errComms != nil {
+			errorskit.FatalWrap(errComms, "couldn't contact to node while bootstrapping")
+		}
+
+		if b {
+			leaders = append(leaders, nodeCfg)
+		}
+
+		// Sleep between requests to not saturate the network too quickly
+		time.Sleep(300 * time.Millisecond)
+	}
+
+	if len(leaders) != 3 {
+		log.Println("No need to bootstrap the cluster...")
+		return
+	}
+
+	log.Println("Bootstrapping cluster...")
+
+	for id, nodeCfg := range a.Config.Nodes {
+		if id == a.Config.CurrentNode.ID {
+			continue
+		}
+
+		future := a.Node.Consensus.AddVoter(
+			raft.ServerID(nodeCfg.ID), raft.ServerAddress(nodeCfg.ConsensusAddress), 0, 0,
+		)
+		if future.Error() != nil {
+			errorskit.FatalWrap(future.Error(), "failed to add server while bootstrapping")
+		}
+
+		// Sleep between requests to not saturate the network too quickly
+		time.Sleep(300 * time.Millisecond)
+	}
+
+	log.Println("Bootstrapping successful!")
 }
