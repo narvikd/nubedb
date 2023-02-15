@@ -100,7 +100,7 @@ func forwardLeaderFuture(leaderCfg config.NodeCfg, payload *fsm.Payload) error {
 	return nil
 }
 
-func isLeader(addr string) (bool, error) {
+func IsLeader(addr string) (bool, error) {
 	// Hardcoded since it's just for dial
 	ctxDial, cancelCtxDial := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancelCtxDial()
@@ -122,7 +122,7 @@ func isLeader(addr string) (bool, error) {
 	return res.IsLeader, nil
 }
 
-func consensusJoin(nodeID string, nodeConsensusAddr string, leaderGrpcAddr string) error {
+func ConsensusJoin(nodeID string, nodeConsensusAddr string, leaderGrpcAddr string) error {
 	// TODO: Maybe add a message to know one node is contacting the other for this operation
 
 	// Hardcoded since it's just for dial
@@ -149,7 +149,7 @@ func consensusJoin(nodeID string, nodeConsensusAddr string, leaderGrpcAddr strin
 	return nil
 }
 
-func consensusRemove(nodeID string, leaderGrpcAddr string) error {
+func ConsensusRemove(nodeID string, leaderGrpcAddr string) error {
 	// TODO: Maybe add a message to know one node is contacting the other for this operation
 
 	// Hardcoded since it's just for dial

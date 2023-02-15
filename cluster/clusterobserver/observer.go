@@ -1,25 +1,33 @@
-package cluster
+package clusterobserver
 
 import (
 	"github.com/hashicorp/raft"
 	"github.com/narvikd/errorskit"
 	"github.com/narvikd/filekit"
 	"log"
+	"nubedb/cluster"
 	"nubedb/internal/app"
 	"nubedb/internal/config"
+	"sync"
 	"time"
 )
 
-func LaunchObserver(a *app.App) {
+func Launch(a *app.App) {
+	var wg sync.WaitGroup
 	log.Println("observer launched, sleeping...")
 	time.Sleep(10 * time.Second)
 	log.Println("observer awake, launching...")
+
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		for {
 			handleUnblockCandidate(a)
 			time.Sleep(10 * time.Second)
 		}
 	}()
+
+	wg.Wait()
 }
 
 func handleUnblockCandidate(a *app.App) {
@@ -45,7 +53,7 @@ func unblockCandidate(a *app.App) {
 			continue
 		}
 
-		b, errComms := isLeader(nodeCfg.GrpcAddress)
+		b, errComms := cluster.IsLeader(nodeCfg.GrpcAddress)
 		if errComms != nil {
 			errorskit.LogWrap(errComms, "couldn't contact to node while unblocking candidate")
 			continue
@@ -61,7 +69,7 @@ func unblockCandidate(a *app.App) {
 		log.Fatalln(errPanic + "leader id is empty")
 	}
 
-	errConsensusRemove := consensusRemove(a.Config.CurrentNode.ID, leader.GrpcAddress)
+	errConsensusRemove := cluster.ConsensusRemove(a.Config.CurrentNode.ID, leader.GrpcAddress)
 	if errConsensusRemove != nil {
 		errorskit.FatalWrap(errConsensusRemove, errPanic+"couldn't remove from consensus")
 	}
@@ -76,7 +84,7 @@ func unblockCandidate(a *app.App) {
 		errorskit.FatalWrap(errDeleteDirs, errPanic+"couldn't delete dirs")
 	}
 
-	errConsensusAdd := consensusJoin(a.Config.CurrentNode.ID, a.Config.CurrentNode.ConsensusAddress, leader.GrpcAddress)
+	errConsensusAdd := cluster.ConsensusJoin(a.Config.CurrentNode.ID, a.Config.CurrentNode.ConsensusAddress, leader.GrpcAddress)
 	if errConsensusAdd != nil {
 		errorskit.FatalWrap(errConsensusAdd, errPanic+"couldn't add node to consensus")
 	}
