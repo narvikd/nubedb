@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"log"
 	"nubedb/pkg/resolver"
 	"os"
 	"strings"
@@ -23,13 +22,13 @@ type Config struct {
 	Nodes       map[string]NodeCfg
 }
 
-func New() Config {
+func New() (Config, error) {
 	currentNodeID := os.Getenv("NODE")
 	if !strings.Contains(currentNodeID, "node") {
-		log.Fatalln("NODE ENV not set or is incorrect", currentNodeID)
+		return Config{}, fmt.Errorf("NODE env variable not set or is incorrect: %s", currentNodeID)
 	}
 	if !resolver.IsHostAlive(currentNodeID) {
-		log.Fatalln("No host found for", currentNodeID)
+		return Config{}, fmt.Errorf("no host found for: %s", currentNodeID)
 	}
 
 	nodes := make(map[string]NodeCfg)
@@ -40,13 +39,14 @@ func New() Config {
 
 	currentNode, exist := nodes[currentNodeID]
 	if !exist {
-		log.Fatalln("current node not found in nodes:", currentNodeID)
+		return Config{}, fmt.Errorf("current node not found in nodes: %s", currentNodeID)
 	}
 
-	return Config{
+	cfg := Config{
 		CurrentNode: currentNode,
 		Nodes:       nodes,
 	}
+	return cfg, nil
 }
 
 func newNodeCfg(nodeID string) NodeCfg {

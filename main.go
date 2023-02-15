@@ -19,8 +19,12 @@ func init() {
 }
 
 func main() {
-	a := app.NewApp(config.New())
-	start(a)
+	cfg, errCfg := config.New()
+	if errCfg != nil {
+		log.Fatalln(errCfg)
+	}
+
+	start(app.NewApp(cfg))
 }
 
 func start(a *app.App) {
