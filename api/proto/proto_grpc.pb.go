@@ -35,7 +35,7 @@ func NewServiceClient(cc grpc.ClientConnInterface) ServiceClient {
 
 func (c *serviceClient) ExecuteOnLeader(ctx context.Context, in *Request, opts ...grpc.CallOption) (*Response, error) {
 	out := new(Response)
-	err := c.cc.Invoke(ctx, "/grpc.Service/ExecuteOnLeader", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/proto.Service/ExecuteOnLeader", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +80,7 @@ func _Service_ExecuteOnLeader_Handler(srv interface{}, ctx context.Context, dec 
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/grpc.Service/ExecuteOnLeader",
+		FullMethod: "/proto.Service/ExecuteOnLeader",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ServiceServer).ExecuteOnLeader(ctx, req.(*Request))
@@ -92,7 +92,7 @@ func _Service_ExecuteOnLeader_Handler(srv interface{}, ctx context.Context, dec 
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var Service_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "grpc.Service",
+	ServiceName: "proto.Service",
 	HandlerType: (*ServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

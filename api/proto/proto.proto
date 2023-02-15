@@ -1,5 +1,5 @@
 syntax = "proto3";
-package grpc;
+package proto;
 option go_package = "./proto";
 
 message Request {
