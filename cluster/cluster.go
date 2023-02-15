@@ -63,7 +63,10 @@ func handleForwardLeaderFuture(cfg config.Config, consensus *raft.Raft, payload 
 }
 
 func forwardLeaderFuture(leaderCfg config.NodeCfg, payload *fsm.Payload) error {
-	const timeoutGrpcCall = 3 * time.Second
+	const (
+		timeoutGrpcCall = 3 * time.Second
+		errGrpcTalk     = "failed to get an ok response from the Leader via grpc"
+	)
 
 	log.Printf("[proto] payload for leader received in this node, forwarding to leader '%s' @ '%s'\n",
 		leaderCfg.ID, leaderCfg.GrpcAddress,
@@ -74,18 +77,20 @@ func forwardLeaderFuture(leaderCfg config.NodeCfg, payload *fsm.Payload) error {
 		return errorskit.Wrap(errMarshal, "couldn't marshal data to send it to the Leader's DB cluster")
 	}
 
-	const errGrpcTalk = "failed to get an ok response from the Leader via grpc"
+	// Hardcoded since it's just for dial
+	ctxDial, cancelCtxDial := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancelCtxDial()
 
-	conn, errDial := grpc.Dial(leaderCfg.GrpcAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, errDial := grpc.DialContext(ctxDial, leaderCfg.GrpcAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if errDial != nil {
 		return errorskit.Wrap(errDial, "failed to connect to the Leader via grpc")
 	}
 	defer conn.Close()
 
-	ctx, cancel := context.WithTimeout(context.Background(), timeoutGrpcCall)
-	defer cancel()
+	ctxExecuteCall, cancelCtxExecuteCall := context.WithTimeout(context.Background(), timeoutGrpcCall)
+	defer cancelCtxExecuteCall()
 
-	_, errTalk := proto.NewServiceClient(conn).ExecuteOnLeader(ctx, &proto.Request{
+	_, errTalk := proto.NewServiceClient(conn).ExecuteOnLeader(ctxExecuteCall, &proto.ExecuteOnLeaderRequest{
 		Payload: payloadData,
 	})
 	if errTalk != nil {
