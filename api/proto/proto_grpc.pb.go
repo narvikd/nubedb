@@ -22,7 +22,7 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ServiceClient interface {
-	ExecuteOnLeader(ctx context.Context, in *Request, opts ...grpc.CallOption) (*Response, error)
+	ExecuteOnLeader(ctx context.Context, in *Request, opts ...grpc.CallOption) (*Empty, error)
 }
 
 type serviceClient struct {
@@ -33,8 +33,8 @@ func NewServiceClient(cc grpc.ClientConnInterface) ServiceClient {
 	return &serviceClient{cc}
 }
 
-func (c *serviceClient) ExecuteOnLeader(ctx context.Context, in *Request, opts ...grpc.CallOption) (*Response, error) {
-	out := new(Response)
+func (c *serviceClient) ExecuteOnLeader(ctx context.Context, in *Request, opts ...grpc.CallOption) (*Empty, error) {
+	out := new(Empty)
 	err := c.cc.Invoke(ctx, "/proto.Service/ExecuteOnLeader", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -46,7 +46,7 @@ func (c *serviceClient) ExecuteOnLeader(ctx context.Context, in *Request, opts .
 // All implementations must embed UnimplementedServiceServer
 // for forward compatibility
 type ServiceServer interface {
-	ExecuteOnLeader(context.Context, *Request) (*Response, error)
+	ExecuteOnLeader(context.Context, *Request) (*Empty, error)
 	mustEmbedUnimplementedServiceServer()
 }
 
@@ -54,7 +54,7 @@ type ServiceServer interface {
 type UnimplementedServiceServer struct {
 }
 
-func (UnimplementedServiceServer) ExecuteOnLeader(context.Context, *Request) (*Response, error) {
+func (UnimplementedServiceServer) ExecuteOnLeader(context.Context, *Request) (*Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ExecuteOnLeader not implemented")
 }
 func (UnimplementedServiceServer) mustEmbedUnimplementedServiceServer() {}

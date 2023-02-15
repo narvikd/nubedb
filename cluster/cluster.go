@@ -3,7 +3,6 @@ package cluster
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"github.com/hashicorp/raft"
 	"github.com/narvikd/errorskit"
 	"google.golang.org/grpc"
@@ -77,14 +76,11 @@ func forwardLeaderFuture(leaderCfg config.NodeCfg, payload *fsm.Payload) error {
 	defer conn.Close()
 
 	client := proto.NewServiceClient(conn)
-	res, errTalk := client.ExecuteOnLeader(context.Background(), &proto.Request{
+	_, errTalk := client.ExecuteOnLeader(context.Background(), &proto.Request{
 		Payload: payloadData,
 	})
 	if errTalk != nil {
 		return errorskit.Wrap(errTalk, errGrpcTalk)
-	}
-	if res.Error != "" {
-		return errors.New(errGrpcTalk)
 	}
 
 	return nil

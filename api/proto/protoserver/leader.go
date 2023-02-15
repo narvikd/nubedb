@@ -10,27 +10,21 @@ import (
 	"nubedb/cluster/consensus/fsm"
 )
 
-func (srv *server) ExecuteOnLeader(ctx context.Context, req *proto.Request) (*proto.Response, error) {
-	log.Println("[proto] request received")
+func (srv *server) ExecuteOnLeader(ctx context.Context, req *proto.Request) (*proto.Empty, error) {
+	log.Println("[proto] request received, processing...")
 
 	p := new(fsm.Payload)
 	errUnmarshal := json.Unmarshal(req.Payload, p)
 	if errUnmarshal != nil {
-		return &proto.Response{
-			Error: errorskit.Wrap(errUnmarshal, "couldn't unmarshal payload").Error(),
-		}, errUnmarshal
+		return &proto.Empty{}, errorskit.Wrap(errUnmarshal, "couldn't unmarshal payload")
 	}
 
 	errExecute := cluster.Execute(srv.Config, srv.Consensus, p)
 	if errExecute != nil {
-		return &proto.Response{
-			Error: errExecute.Error(),
-		}, errExecute
+		return &proto.Empty{}, errExecute
 	}
 
 	log.Println("[proto] request successful")
 
-	return &proto.Response{
-		Error: "",
-	}, nil
+	return &proto.Empty{}, nil
 }
