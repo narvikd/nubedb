@@ -8,8 +8,15 @@ import (
 	"nubedb/api/rest/route"
 	"nubedb/internal/app"
 	"nubedb/internal/config"
+	"runtime"
 	"sync"
 )
+
+func init() {
+	if runtime.GOOS == "windows" {
+		log.Fatalln("nubedb is only compatible with Mac and Linux")
+	}
+}
 
 func main() {
 	a := app.NewApp(config.New())
