@@ -16,7 +16,7 @@ type Config struct {
 }
 
 func New() Config {
-	id := flag.String("id", "node_1", "")
+	id := flag.String("id", "node1", "")
 	host := flag.String("host", "localhost", "")
 	apiPort := flag.Int("api-port", 3001, "")
 	consensusPort := flag.Int("consensus-port", 4001, "")
