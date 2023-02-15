@@ -17,7 +17,6 @@ func (srv *server) ExecuteOnLeader(ctx context.Context, req *proto.ExecuteOnLead
 	}
 
 	log.Println("[proto](ExecuteOnLeader) request successful")
-
 	return &proto.Empty{}, nil
 }
 
@@ -26,4 +25,28 @@ func (srv *server) IsLeader(ctx context.Context, req *proto.Empty) (*proto.IsLea
 	is := srv.Consensus.State() == raft.Leader
 	log.Println("[proto](ExecuteOnLeader) request successful")
 	return &proto.IsLeaderResponse{IsLeader: is}, nil
+}
+
+func (srv *server) ConsensusJoin(ctx context.Context, req *proto.ConsensusRequest) (*proto.Empty, error) {
+	log.Println("[proto] (ConsensusJoin) request received, processing...")
+
+	future := srv.Consensus.AddVoter(raft.ServerID(req.NodeID), raft.ServerAddress(req.NodeConsensusAddr), 0, 0)
+	if future.Error() != nil {
+		return &proto.Empty{}, future.Error()
+	}
+
+	log.Println("[proto](ConsensusJoin) request successful")
+	return &proto.Empty{}, nil
+}
+
+func (srv *server) ConsensusRemove(ctx context.Context, req *proto.ConsensusRequest) (*proto.Empty, error) {
+	log.Println("[proto] (ConsensusRemove) request received, processing...")
+
+	future := srv.Consensus.RemoveServer(raft.ServerID(req.NodeID), 0, 0)
+	if future.Error() != nil {
+		return &proto.Empty{}, future.Error()
+	}
+
+	log.Println("[proto](ConsensusRemove) request successful")
+	return &proto.Empty{}, nil
 }
