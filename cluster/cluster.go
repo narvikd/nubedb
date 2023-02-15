@@ -63,6 +63,8 @@ func handleForwardLeaderFuture(cfg config.Config, consensus *raft.Raft, payload 
 }
 
 func forwardLeaderFuture(leaderCfg config.NodeCfg, payload *fsm.Payload) error {
+	const timeoutGrpcCall = 3 * time.Second
+
 	log.Printf("[proto] payload for leader received in this node, forwarding to leader '%s' @ '%s'\n",
 		leaderCfg.ID, leaderCfg.GrpcAddress,
 	)
@@ -80,8 +82,10 @@ func forwardLeaderFuture(leaderCfg config.NodeCfg, payload *fsm.Payload) error {
 	}
 	defer conn.Close()
 
-	client := proto.NewServiceClient(conn)
-	_, errTalk := client.ExecuteOnLeader(context.Background(), &proto.Request{
+	ctx, cancel := context.WithTimeout(context.Background(), timeoutGrpcCall)
+	defer cancel()
+
+	_, errTalk := proto.NewServiceClient(conn).ExecuteOnLeader(ctx, &proto.Request{
 		Payload: payloadData,
 	})
 	if errTalk != nil {
