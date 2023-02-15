@@ -19,7 +19,7 @@ type App struct {
 }
 
 func NewApp(cfg config.Config) *App {
-	node, errConsensus := consensus.New(cfg.ID, cfg.ConsensusAddress)
+	node, errConsensus := consensus.New(cfg.CurrentNode.ID, cfg.CurrentNode.ConsensusAddress)
 	if errConsensus != nil {
 		log.Fatalln(errConsensus)
 	}

@@ -21,7 +21,7 @@ func (srv *server) ExecuteOnLeader(ctx context.Context, req *proto.Request) (*pr
 		}, errUnmarshal
 	}
 
-	errExecute := cluster.Execute(srv.Consensus, p)
+	errExecute := cluster.Execute(srv.Config, srv.Consensus, p)
 	if errExecute != nil {
 		return &proto.Response{
 			Error: errExecute.Error(),

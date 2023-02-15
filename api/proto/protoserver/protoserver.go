@@ -7,16 +7,18 @@ import (
 	"nubedb/api/proto"
 	"nubedb/cluster/consensus/fsm"
 	"nubedb/internal/app"
+	"nubedb/internal/config"
 )
 
 type server struct {
 	proto.UnimplementedServiceServer
+	Config    config.Config
 	Consensus *raft.Raft
 	FSM       *fsm.DatabaseFSM
 }
 
 func Start(a *app.App) error {
-	listen, errListen := net.Listen("tcp", a.Config.GrpcAddress)
+	listen, errListen := net.Listen("tcp", a.Config.CurrentNode.GrpcAddress)
 	if errListen != nil {
 		return errListen
 	}
@@ -24,6 +26,7 @@ func Start(a *app.App) error {
 
 	protoServer := grpc.NewServer()
 	proto.RegisterServiceServer(protoServer, srvModel)
+	srvModel.Config = a.Config
 	srvModel.Consensus = a.Node.Consensus
 	srvModel.FSM = a.Node.FSM
 

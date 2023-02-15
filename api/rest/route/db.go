@@ -37,7 +37,7 @@ func (a *ApiCtx) storeSet(fiberCtx *fiber.Ctx) error {
 	}
 	payload.Operation = operationType
 
-	errCluster := cluster.Execute(a.Consensus, payload)
+	errCluster := cluster.Execute(a.Config, a.Consensus, payload)
 	if errCluster != nil {
 		return jsonresponse.ServerError(fiberCtx, errCluster.Error())
 	}
@@ -55,7 +55,7 @@ func (a *ApiCtx) storeDelete(fiberCtx *fiber.Ctx) error {
 	}
 	payload.Operation = operationType
 
-	errCluster := cluster.Execute(a.Consensus, payload)
+	errCluster := cluster.Execute(a.Config, a.Consensus, payload)
 	if errCluster != nil {
 		if strings.Contains(strings.ToLower(errCluster.Error()), "key not found") {
 			return jsonresponse.NotFound(fiberCtx, "key doesn't exist")

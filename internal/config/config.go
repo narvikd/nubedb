@@ -1,11 +1,13 @@
 package config
 
 import (
-	"flag"
 	"fmt"
+	"log"
+	"os"
+	"strings"
 )
 
-type Config struct {
+type NodeCfg struct {
 	ID               string
 	ApiPort          int
 	ApiAddress       string
@@ -15,31 +17,52 @@ type Config struct {
 	GrpcAddress      string
 }
 
-func New() Config {
-	id := flag.String("id", "node1", "")
-	//host := flag.String("host", "localhost", "")
-	apiPort := flag.Int("port", 3001, "")
-	//consensusPort := flag.Int("consensus-port", 4001, "")
-	//grpcPort := flag.Int("grpc-port", 5001, "")
-	flag.Parse()
-
-	consensusPort := *apiPort + 1
-	grpcPort := consensusPort + 1
-
-	cfg := Config{
-		ID:               *id,
-		ApiPort:          *apiPort,
-		ApiAddress:       makeAddr(*apiPort),
-		ConsensusPort:    consensusPort,
-		ConsensusAddress: makeAddr(consensusPort),
-		GrpcPort:         grpcPort,
-		GrpcAddress:      makeAddr(grpcPort),
-	}
-	fmt.Println("Config:", cfg)
-	return cfg
+type Config struct {
+	CurrentNode NodeCfg
+	Nodes       map[string]NodeCfg
 }
 
-func makeAddr(port int) string {
-	const host = "localhost"
+func New() Config {
+	currentNodeID := os.Getenv("NODE")
+	if !strings.Contains(currentNodeID, "node") {
+		log.Fatalln("NODE ENV not set or is incorrect", currentNodeID)
+	}
+
+	nodes := make(map[string]NodeCfg)
+	for i := 1; i <= 3; i++ {
+		n := fmt.Sprintf("node%v", i)
+		nodes[n] = newNodeCfg(n)
+	}
+
+	currentNode, exist := nodes[currentNodeID]
+	if !exist {
+		log.Fatalln("current node not found in nodes:", currentNodeID)
+	}
+
+	return Config{
+		CurrentNode: currentNode,
+		Nodes:       nodes,
+	}
+}
+
+func newNodeCfg(nodeID string) NodeCfg {
+	const (
+		apiPort       = 3001
+		consensusPort = 3002
+		grpcPort      = 3003
+	)
+
+	return NodeCfg{
+		ID:               nodeID,
+		ApiPort:          apiPort,
+		ApiAddress:       makeAddr(nodeID, apiPort),
+		ConsensusPort:    consensusPort,
+		ConsensusAddress: makeAddr(nodeID, consensusPort),
+		GrpcPort:         grpcPort,
+		GrpcAddress:      makeAddr(nodeID, grpcPort),
+	}
+}
+
+func makeAddr(host string, port int) string {
 	return fmt.Sprintf("%s:%v", host, port)
 }

@@ -43,7 +43,7 @@ func startApiProto(a *app.App) {
 }
 
 func startApiRest(a *app.App) {
-	errListen := newApiRest(a).Listen(a.Config.ApiAddress)
+	errListen := newApiRest(a).Listen(a.Config.CurrentNode.ApiAddress)
 	if errListen != nil {
 		log.Fatalln("api can't be started:", errListen)
 	}
