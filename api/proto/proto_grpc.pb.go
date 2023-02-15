@@ -24,6 +24,8 @@ const _ = grpc.SupportPackageIsVersion7
 type ServiceClient interface {
 	ExecuteOnLeader(ctx context.Context, in *ExecuteOnLeaderRequest, opts ...grpc.CallOption) (*Empty, error)
 	IsLeader(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*IsLeaderResponse, error)
+	ConsensusJoin(ctx context.Context, in *ConsensusRequest, opts ...grpc.CallOption) (*Empty, error)
+	ConsensusRemove(ctx context.Context, in *ConsensusRequest, opts ...grpc.CallOption) (*Empty, error)
 }
 
 type serviceClient struct {
@@ -52,12 +54,32 @@ func (c *serviceClient) IsLeader(ctx context.Context, in *Empty, opts ...grpc.Ca
 	return out, nil
 }
 
+func (c *serviceClient) ConsensusJoin(ctx context.Context, in *ConsensusRequest, opts ...grpc.CallOption) (*Empty, error) {
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, "/proto.Service/ConsensusJoin", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *serviceClient) ConsensusRemove(ctx context.Context, in *ConsensusRequest, opts ...grpc.CallOption) (*Empty, error) {
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, "/proto.Service/ConsensusRemove", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ServiceServer is the server API for Service service.
 // All implementations must embed UnimplementedServiceServer
 // for forward compatibility
 type ServiceServer interface {
 	ExecuteOnLeader(context.Context, *ExecuteOnLeaderRequest) (*Empty, error)
 	IsLeader(context.Context, *Empty) (*IsLeaderResponse, error)
+	ConsensusJoin(context.Context, *ConsensusRequest) (*Empty, error)
+	ConsensusRemove(context.Context, *ConsensusRequest) (*Empty, error)
 	mustEmbedUnimplementedServiceServer()
 }
 
@@ -70,6 +92,12 @@ func (UnimplementedServiceServer) ExecuteOnLeader(context.Context, *ExecuteOnLea
 }
 func (UnimplementedServiceServer) IsLeader(context.Context, *Empty) (*IsLeaderResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method IsLeader not implemented")
+}
+func (UnimplementedServiceServer) ConsensusJoin(context.Context, *ConsensusRequest) (*Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ConsensusJoin not implemented")
+}
+func (UnimplementedServiceServer) ConsensusRemove(context.Context, *ConsensusRequest) (*Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ConsensusRemove not implemented")
 }
 func (UnimplementedServiceServer) mustEmbedUnimplementedServiceServer() {}
 
@@ -120,6 +148,42 @@ func _Service_IsLeader_Handler(srv interface{}, ctx context.Context, dec func(in
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Service_ConsensusJoin_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ConsensusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ServiceServer).ConsensusJoin(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.Service/ConsensusJoin",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ServiceServer).ConsensusJoin(ctx, req.(*ConsensusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Service_ConsensusRemove_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ConsensusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ServiceServer).ConsensusRemove(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.Service/ConsensusRemove",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ServiceServer).ConsensusRemove(ctx, req.(*ConsensusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Service_ServiceDesc is the grpc.ServiceDesc for Service service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -134,6 +198,14 @@ var Service_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "IsLeader",
 			Handler:    _Service_IsLeader_Handler,
+		},
+		{
+			MethodName: "ConsensusJoin",
+			Handler:    _Service_ConsensusJoin_Handler,
+		},
+		{
+			MethodName: "ConsensusRemove",
+			Handler:    _Service_ConsensusRemove_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
