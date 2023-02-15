@@ -4,7 +4,6 @@ package resolver
 
 import (
 	pinger "github.com/prometheus-community/pro-bing"
-	"time"
 )
 
 func IsHostAlive(host string) bool {
@@ -16,8 +15,8 @@ func IsHostAlive(host string) bool {
 		return false
 	}
 	p.Count = 1
-	p.Interval = 300 * time.Millisecond
-	p.Timeout = 300 * time.Millisecond
+	p.Interval = timeoutTimer
+	p.Timeout = timeoutTimer
 
 	if p.Run() != nil {
 		return false

@@ -5,8 +5,10 @@ import (
 	"time"
 )
 
+const timeoutTimer = 300 * time.Millisecond
+
 func IsHostResolvable(host string) bool {
-	timeout := time.After(200 * time.Millisecond)
+	timeout := time.After(timeoutTimer)
 	result := make(chan error)
 	go func() {
 		_, err := net.LookupHost(host)
