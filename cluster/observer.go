@@ -34,7 +34,7 @@ func handleUnblockCandidate(a *app.App) {
 }
 
 func unblockCandidate(a *app.App) {
-	const errPanic = "COULDN'T GRACEFULLY UNBLOCK CANDIDATE"
+	const errPanic = "COULDN'T GRACEFULLY UNBLOCK CANDIDATE. "
 
 	log.Println("node got stuck in candidate for too long... Node reinstall in progress...")
 
@@ -58,27 +58,27 @@ func unblockCandidate(a *app.App) {
 	}
 
 	if leader.ID == "" {
-		log.Fatalln(errPanic)
+		log.Fatalln(errPanic + "leader id is empty")
 	}
 
-	errRemove := consensusRemove(a.Config.CurrentNode.ID, leader.GrpcAddress)
-	if errRemove != nil {
-		errorskit.FatalWrap(errRemove, errPanic)
+	errConsensusRemove := consensusRemove(a.Config.CurrentNode.ID, leader.GrpcAddress)
+	if errConsensusRemove != nil {
+		errorskit.FatalWrap(errConsensusRemove, errPanic+"couldn't remove from consensus")
 	}
 
 	future := a.Node.Consensus.Shutdown()
 	if future.Error() != nil {
-		errorskit.FatalWrap(future.Error(), errPanic)
+		errorskit.FatalWrap(future.Error(), errPanic+"couldn't shut down")
 	}
 
 	errDeleteDirs := filekit.DeleteDirs(a.Node.Dir)
 	if errDeleteDirs != nil {
-		errorskit.FatalWrap(errDeleteDirs, errPanic)
+		errorskit.FatalWrap(errDeleteDirs, errPanic+"couldn't delete dirs")
 	}
 
-	errAdd := consensusJoin(a.Config.CurrentNode.ID, a.Config.CurrentNode.ConsensusAddress, leader.GrpcAddress)
-	if errAdd != nil {
-		errorskit.FatalWrap(errAdd, errPanic)
+	errConsensusAdd := consensusJoin(a.Config.CurrentNode.ID, a.Config.CurrentNode.ConsensusAddress, leader.GrpcAddress)
+	if errConsensusAdd != nil {
+		errorskit.FatalWrap(errConsensusAdd, errPanic+"couldn't add node to consensus")
 	}
 
 	log.Fatalln("Node successfully reset. Restarting...")
