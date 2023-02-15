@@ -1,0 +1,13 @@
+syntax = "proto3";
+package proto;
+option go_package = "./proto";
+
+message Request {
+  bytes payload = 1;
+}
+
+message Empty {}
+
+service Service {
+  rpc ExecuteOnLeader(Request) returns (Empty);
+}

@@ -3,12 +3,14 @@ package route
 import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/hashicorp/raft"
-	"nubedb/consensus/fsm"
+	"nubedb/cluster/consensus/fsm"
 	"nubedb/internal/app"
+	"nubedb/internal/config"
 )
 
 // ApiCtx is a simple struct to include a collection of tools that a route could need to operate, for example a DB.
 type ApiCtx struct {
+	Config     config.Config
 	HttpServer *fiber.App
 	Consensus  *raft.Raft
 	FSM        *fsm.DatabaseFSM
@@ -17,6 +19,7 @@ type ApiCtx struct {
 // newRouteCtx returns a pointer of a new instance of ApiCtx.
 func newRouteCtx(app *app.App) *ApiCtx {
 	routeCtx := ApiCtx{
+		Config:     app.Config,
 		HttpServer: app.HttpServer,
 		Consensus:  app.Node.Consensus,
 		FSM:        app.Node.FSM,

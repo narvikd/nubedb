@@ -4,7 +4,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/narvikd/fiberparser"
 	"log"
-	"nubedb/consensus"
+	"nubedb/cluster/consensus"
 	"nubedb/internal/config"
 	"time"
 )
@@ -15,10 +15,11 @@ import (
 type App struct {
 	HttpServer *fiber.App
 	Node       *consensus.Node
+	Config     config.Config
 }
 
 func NewApp(cfg config.Config) *App {
-	node, errConsensus := consensus.New(cfg.ID, cfg.ConsensusAddress)
+	node, errConsensus := consensus.New(cfg.CurrentNode.ID, cfg.CurrentNode.ConsensusAddress)
 	if errConsensus != nil {
 		log.Fatalln(errConsensus)
 	}
@@ -37,5 +38,6 @@ func NewApp(cfg config.Config) *App {
 	return &App{
 		HttpServer: serv,
 		Node:       node,
+		Config:     cfg,
 	}
 }

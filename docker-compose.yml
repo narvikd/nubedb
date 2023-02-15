@@ -1,0 +1,34 @@
+version: "3.9"
+
+networks:
+  nubedb:
+    external: false
+
+services:
+  node1:
+    image: nubedb:latest
+    container_name: node1
+    volumes:
+      - ./data:/app/data
+    environment:
+      - NODE=node1
+    ports:
+      - '3001:3001'
+  node2:
+    image: nubedb:latest
+    container_name: node2
+    volumes:
+      - ./data:/app/data
+    environment:
+      - NODE=node2
+    ports:
+      - '3002:3001'
+  node3:
+    image: nubedb:latest
+    container_name: node3
+    volumes:
+      - ./data:/app/data
+    environment:
+      - NODE=node3
+    ports:
+      - '3003:3001'

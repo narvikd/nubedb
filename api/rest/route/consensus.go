@@ -6,8 +6,8 @@ import (
 	"github.com/hashicorp/raft"
 	"github.com/narvikd/errorskit"
 	"github.com/narvikd/fiberparser"
-	"nubedb/api/jsonresponse"
-	"nubedb/consensus"
+	"nubedb/api/rest/jsonresponse"
+	"nubedb/cluster/consensus"
 )
 
 func (a *ApiCtx) consensusJoin(fiberCtx *fiber.Ctx) error {
