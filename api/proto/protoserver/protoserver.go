@@ -25,14 +25,13 @@ func Start(a *app.App) error {
 
 	protoServer := grpc.NewServer()
 	proto.RegisterServiceServer(protoServer, srvModel)
+	srvModel.Consensus = a.Node.Consensus
+	srvModel.FSM = a.Node.FSM
 
 	errServe := protoServer.Serve(listen)
 	if errServe != nil {
 		return errServe
 	}
-
-	srvModel.Consensus = a.Node.Consensus
-	srvModel.FSM = a.Node.FSM
 
 	return nil
 }
