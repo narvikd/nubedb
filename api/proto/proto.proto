@@ -11,5 +11,5 @@ message Response {
 }
 
 service Service {
-  rpc LeaderApplyFuture(Request) returns (Response);
+  rpc ExecuteOnLeader(Request) returns (Response);
 }

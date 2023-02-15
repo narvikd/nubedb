@@ -22,7 +22,7 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ServiceClient interface {
-	LeaderApplyFuture(ctx context.Context, in *Request, opts ...grpc.CallOption) (*Response, error)
+	ExecuteOnLeader(ctx context.Context, in *Request, opts ...grpc.CallOption) (*Response, error)
 }
 
 type serviceClient struct {
@@ -33,9 +33,9 @@ func NewServiceClient(cc grpc.ClientConnInterface) ServiceClient {
 	return &serviceClient{cc}
 }
 
-func (c *serviceClient) LeaderApplyFuture(ctx context.Context, in *Request, opts ...grpc.CallOption) (*Response, error) {
+func (c *serviceClient) ExecuteOnLeader(ctx context.Context, in *Request, opts ...grpc.CallOption) (*Response, error) {
 	out := new(Response)
-	err := c.cc.Invoke(ctx, "/grpc.Service/LeaderApplyFuture", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/grpc.Service/ExecuteOnLeader", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +46,7 @@ func (c *serviceClient) LeaderApplyFuture(ctx context.Context, in *Request, opts
 // All implementations must embed UnimplementedServiceServer
 // for forward compatibility
 type ServiceServer interface {
-	LeaderApplyFuture(context.Context, *Request) (*Response, error)
+	ExecuteOnLeader(context.Context, *Request) (*Response, error)
 	mustEmbedUnimplementedServiceServer()
 }
 
@@ -54,8 +54,8 @@ type ServiceServer interface {
 type UnimplementedServiceServer struct {
 }
 
-func (UnimplementedServiceServer) LeaderApplyFuture(context.Context, *Request) (*Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method LeaderApplyFuture not implemented")
+func (UnimplementedServiceServer) ExecuteOnLeader(context.Context, *Request) (*Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ExecuteOnLeader not implemented")
 }
 func (UnimplementedServiceServer) mustEmbedUnimplementedServiceServer() {}
 
@@ -70,20 +70,20 @@ func RegisterServiceServer(s grpc.ServiceRegistrar, srv ServiceServer) {
 	s.RegisterService(&Service_ServiceDesc, srv)
 }
 
-func _Service_LeaderApplyFuture_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Service_ExecuteOnLeader_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(Request)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ServiceServer).LeaderApplyFuture(ctx, in)
+		return srv.(ServiceServer).ExecuteOnLeader(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/grpc.Service/LeaderApplyFuture",
+		FullMethod: "/grpc.Service/ExecuteOnLeader",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ServiceServer).LeaderApplyFuture(ctx, req.(*Request))
+		return srv.(ServiceServer).ExecuteOnLeader(ctx, req.(*Request))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -96,8 +96,8 @@ var Service_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*ServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "LeaderApplyFuture",
-			Handler:    _Service_LeaderApplyFuture_Handler,
+			MethodName: "ExecuteOnLeader",
+			Handler:    _Service_ExecuteOnLeader_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
