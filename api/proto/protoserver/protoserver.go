@@ -1,7 +1,6 @@
 package protoserver
 
 import (
-	"fmt"
 	"github.com/hashicorp/raft"
 	"google.golang.org/grpc"
 	"net"
@@ -17,7 +16,7 @@ type server struct {
 }
 
 func Start(a *app.App) error {
-	listen, errListen := net.Listen("tcp", makeAddr(a.Config.Host, a.Config.GrpcPort))
+	listen, errListen := net.Listen("tcp", a.Config.GrpcAddress)
 	if errListen != nil {
 		return errListen
 	}
@@ -34,11 +33,4 @@ func Start(a *app.App) error {
 	}
 
 	return nil
-}
-
-func makeAddr(host string, port int) string {
-	if host == "0.0.0.0" {
-		host = "" // #nosec G102 -- This is needed for listening in docker
-	}
-	return fmt.Sprintf("%s:%v", host, port)
 }
