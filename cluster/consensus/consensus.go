@@ -2,6 +2,7 @@ package consensus
 
 import (
 	"github.com/dgraph-io/badger/v3"
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/raft-boltdb/v2"
 	"github.com/narvikd/errorskit"
@@ -15,14 +16,15 @@ import (
 )
 
 type Node struct {
-	Consensus    *raft.Raft
-	FSM          *fsm.DatabaseFSM
-	ID           string `json:"id" validate:"required"`
-	Address      string `json:"address"`
-	Dir          string
-	storageDir   string
-	snapshotsDir string
-	consensusDB  string
+	Consensus       *raft.Raft
+	FSM             *fsm.DatabaseFSM
+	ID              string `json:"id" validate:"required"`
+	Address         string `json:"address"`
+	Dir             string
+	storageDir      string
+	snapshotsDir    string
+	consensusDB     string
+	consensusLogger hclog.Logger
 }
 
 func New(id string, address string) (*Node, error) {
@@ -111,7 +113,7 @@ func (n *Node) setRaft() error {
 	cfg.LocalID = serverID
 	cfg.SnapshotInterval = timeout
 	cfg.SnapshotThreshold = snapshotThreshold
-	setConsensusLogger(cfg)
+	n.setConsensusLogger(cfg)
 
 	r, errRaft := raft.NewRaft(cfg, n.FSM, dbStore, dbStore, snaps, transport)
 	if errRaft != nil {

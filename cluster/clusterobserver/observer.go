@@ -108,6 +108,7 @@ func handleBootstrapping(a *app.App) {
 		return
 	}
 
+	// TODO: Refactor, this is coupled
 	if a.Config.CurrentNode.ID != "node1" {
 		return
 	}

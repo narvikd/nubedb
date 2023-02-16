@@ -1,6 +1,7 @@
 package consensus
 
 import (
+	"fmt"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/raft"
 	"io"
@@ -36,12 +37,21 @@ func newConsensusFilterWriter() *filterWriter {
 	return newFilterWriter(os.Stderr, filters)
 }
 
-func setConsensusLogger(cfg *raft.Config) {
+// TODO: Maybe this should be decoupled
+func (n *Node) setConsensusLogger(cfg *raft.Config) {
 	fw := newConsensusFilterWriter()
-	cfg.LogOutput = fw
-	cfg.Logger = hclog.New(&hclog.LoggerOptions{
+	l := hclog.New(&hclog.LoggerOptions{
 		Name:   "consensus",
 		Level:  hclog.LevelFromString("DEBUG"),
 		Output: fw,
 	})
+
+	n.consensusLogger = l
+
+	cfg.LogOutput = fw
+	cfg.Logger = l
+}
+
+func (n *Node) LogWrapErr(err error, message string) {
+	n.consensusLogger.Error(fmt.Errorf("%s: %w", message, err).Error())
 }
