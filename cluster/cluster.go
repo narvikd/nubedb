@@ -1,27 +1,22 @@
 package cluster
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"github.com/hashicorp/raft"
 	"github.com/narvikd/errorskit"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 	"log"
 	"nubedb/api/proto"
+	"nubedb/api/proto/protoclient"
 	"nubedb/cluster/consensus/fsm"
 	"nubedb/internal/config"
 	"time"
 )
 
 const (
-	timeoutGrpcCall      = 3 * time.Second
-	errDBCluster         = "consensus returned an error when trying to Apply an order."
-	errGrpcTalkLeader    = "failed to get an ok response from the Leader via grpc"
-	errGrpcConnectLeader = "failed to connect to the Leader via grpc"
-	errGrpcTalkNode      = "failed to get an ok response from the node via grpc"
-	errGrpcConnectNode   = "failed to connect to the node via grpc"
+	errDBCluster      = "consensus returned an error when trying to Apply an order."
+	errGrpcTalkLeader = "failed to get an ok response from the Leader via grpc"
+	errGrpcTalkNode   = "failed to get an ok response from the node via grpc"
 )
 
 func Execute(cfg config.Config, consensus *raft.Raft, payload *fsm.Payload) error {
@@ -77,20 +72,13 @@ func forwardLeaderFuture(leaderCfg config.NodeCfg, payload *fsm.Payload) error {
 		return errorskit.Wrap(errMarshal, "couldn't marshal data to send it to the Leader's DB cluster")
 	}
 
-	// Hardcoded since it's just for dial
-	ctxDial, cancelCtxDial := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancelCtxDial()
-
-	conn, errDial := grpc.DialContext(ctxDial, leaderCfg.GrpcAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if errDial != nil {
-		return errorskit.Wrap(errDial, errGrpcConnectLeader)
+	conn, errConn := protoclient.NewConnection(leaderCfg.GrpcAddress)
+	if errConn != nil {
+		return errConn
 	}
-	defer conn.Close()
+	defer conn.Cleanup()
 
-	ctxExecuteCall, cancelCtxExecuteCall := context.WithTimeout(context.Background(), timeoutGrpcCall)
-	defer cancelCtxExecuteCall()
-
-	_, errTalk := proto.NewServiceClient(conn).ExecuteOnLeader(ctxExecuteCall, &proto.ExecuteOnLeaderRequest{
+	_, errTalk := conn.Client.ExecuteOnLeader(conn.Ctx, &proto.ExecuteOnLeaderRequest{
 		Payload: payloadData,
 	})
 	if errTalk != nil {
@@ -101,20 +89,13 @@ func forwardLeaderFuture(leaderCfg config.NodeCfg, payload *fsm.Payload) error {
 }
 
 func IsLeader(addr string) (bool, error) {
-	// Hardcoded since it's just for dial
-	ctxDial, cancelCtxDial := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancelCtxDial()
-
-	conn, errDial := grpc.DialContext(ctxDial, addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if errDial != nil {
-		return false, errorskit.Wrap(errDial, errGrpcConnectNode)
+	conn, errConn := protoclient.NewConnection(addr)
+	if errConn != nil {
+		return false, errConn
 	}
-	defer conn.Close()
+	defer conn.Cleanup()
 
-	ctxExecuteCall, cancelCtxExecuteCall := context.WithTimeout(context.Background(), timeoutGrpcCall)
-	defer cancelCtxExecuteCall()
-
-	res, errTalk := proto.NewServiceClient(conn).IsLeader(ctxExecuteCall, &proto.Empty{})
+	res, errTalk := conn.Client.IsLeader(conn.Ctx, &proto.Empty{})
 	if errTalk != nil {
 		return false, errorskit.Wrap(errTalk, errGrpcTalkNode)
 	}
@@ -125,20 +106,13 @@ func IsLeader(addr string) (bool, error) {
 func ConsensusJoin(nodeID string, nodeConsensusAddr string, leaderGrpcAddr string) error {
 	// TODO: Maybe add a message to know one node is contacting the other for this operation
 
-	// Hardcoded since it's just for dial
-	ctxDial, cancelCtxDial := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancelCtxDial()
-
-	conn, errDial := grpc.DialContext(ctxDial, leaderGrpcAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if errDial != nil {
-		return errorskit.Wrap(errDial, errGrpcConnectLeader)
+	conn, errConn := protoclient.NewConnection(leaderGrpcAddr)
+	if errConn != nil {
+		return errConn
 	}
-	defer conn.Close()
+	defer conn.Cleanup()
 
-	ctxExecuteCall, cancelCtxExecuteCall := context.WithTimeout(context.Background(), timeoutGrpcCall)
-	defer cancelCtxExecuteCall()
-
-	_, errTalk := proto.NewServiceClient(conn).ConsensusJoin(ctxExecuteCall, &proto.ConsensusRequest{
+	_, errTalk := conn.Client.ConsensusJoin(conn.Ctx, &proto.ConsensusRequest{
 		NodeID:            nodeID,
 		NodeConsensusAddr: nodeConsensusAddr,
 	})
@@ -152,20 +126,13 @@ func ConsensusJoin(nodeID string, nodeConsensusAddr string, leaderGrpcAddr strin
 func ConsensusRemove(nodeID string, leaderGrpcAddr string) error {
 	// TODO: Maybe add a message to know one node is contacting the other for this operation
 
-	// Hardcoded since it's just for dial
-	ctxDial, cancelCtxDial := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancelCtxDial()
-
-	conn, errDial := grpc.DialContext(ctxDial, leaderGrpcAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if errDial != nil {
-		return errorskit.Wrap(errDial, errGrpcConnectLeader)
+	conn, errConn := protoclient.NewConnection(leaderGrpcAddr)
+	if errConn != nil {
+		return errConn
 	}
-	defer conn.Close()
+	defer conn.Cleanup()
 
-	ctxExecuteCall, cancelCtxExecuteCall := context.WithTimeout(context.Background(), timeoutGrpcCall)
-	defer cancelCtxExecuteCall()
-
-	_, errTalk := proto.NewServiceClient(conn).ConsensusRemove(ctxExecuteCall, &proto.ConsensusRequest{
+	_, errTalk := conn.Client.ConsensusRemove(conn.Ctx, &proto.ConsensusRequest{
 		NodeID: nodeID,
 	})
 	if errTalk != nil {
