@@ -2,14 +2,6 @@ package jsonresponse
 
 import "github.com/gofiber/fiber/v2"
 
-func Make(ctx *fiber.Ctx, status int, success bool, message string, data any) error {
-	return ctx.Status(status).JSON(&fiber.Map{
-		"success": success,
-		"message": message,
-		"data":    data,
-	})
-}
-
 // OK returns a successful response with status code 200
 func OK(ctx *fiber.Ctx, message string, data any) error {
 	return ctx.Status(200).JSON(&fiber.Map{
