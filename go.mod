@@ -11,7 +11,7 @@ require (
 	github.com/narvikd/errorskit v1.0.0
 	github.com/narvikd/fiberparser v1.1.1
 	github.com/narvikd/filekit v1.0.1
-	github.com/prometheus-community/pro-bing v0.1.0
+	github.com/narvikd/resolver v1.0.0
 	google.golang.org/grpc v1.53.0
 	google.golang.org/protobuf v1.28.1
 )
@@ -45,6 +45,7 @@ require (
 	github.com/mattn/go-runewidth v0.0.14 // indirect
 	github.com/philhofer/fwd v1.1.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/prometheus-community/pro-bing v0.1.0 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/savsgio/dictpool v0.0.0-20221023140959-7bf2e61cea94 // indirect
 	github.com/savsgio/gotils v0.0.0-20220530130905-52f3993e8d6d // indirect

@@ -2,9 +2,10 @@ package config
 
 import (
 	"fmt"
-	"nubedb/pkg/resolver"
+	"github.com/narvikd/resolver"
 	"os"
 	"strings"
+	"time"
 )
 
 type NodeCfg struct {
@@ -23,11 +24,14 @@ type Config struct {
 }
 
 func New() (Config, error) {
+	const resolverTimeout = 300 * time.Millisecond
 	currentNodeID := os.Getenv("NODE")
+
 	if !strings.Contains(currentNodeID, "node") {
 		return Config{}, fmt.Errorf("NODE env variable not set or is incorrect: %s", currentNodeID)
 	}
-	if !resolver.IsHostAlive(currentNodeID) {
+
+	if !resolver.IsHostAlive(currentNodeID, resolverTimeout) {
 		return Config{}, fmt.Errorf("no host found for: %s", currentNodeID)
 	}
 
