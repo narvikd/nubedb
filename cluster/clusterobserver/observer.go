@@ -75,7 +75,7 @@ func unblockCandidate(a *app.App) {
 	}
 
 	if leader.ID == "" {
-		log.Fatalln(errPanic + "leader id is empty")
+		log.Fatalln(errPanic + "couldn't find any leader alive in the cluster. Is the node disconnected from the network?")
 	}
 
 	errConsensusRemove := cluster.ConsensusRemove(a.Config.CurrentNode.ID, leader.GrpcAddress)
