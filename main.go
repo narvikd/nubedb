@@ -7,6 +7,7 @@ import (
 	"nubedb/api/rest/middleware"
 	"nubedb/api/rest/route"
 	"nubedb/cluster/clusterobserver"
+	"nubedb/discover"
 	"nubedb/internal/app"
 	"nubedb/internal/config"
 	"runtime"
@@ -47,6 +48,12 @@ func start(a *app.App) {
 	go func() {
 		defer wg.Done()
 		clusterobserver.Launch(a)
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		discover.Start()
 	}()
 
 	wg.Wait()
