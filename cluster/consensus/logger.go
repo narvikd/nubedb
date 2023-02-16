@@ -4,37 +4,15 @@ import (
 	"fmt"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/raft"
-	"io"
+	"nubedb/pkg/filterwriter"
 	"os"
-	"strings"
 )
 
-type filterWriter struct {
-	innerWriter io.Writer
-	filters     []string
-}
-
-func (fw *filterWriter) Write(input []byte) (n int, err error) {
-	for _, filter := range fw.filters {
-		if strings.Contains(string(input), filter) {
-			return len(input), nil
-		}
-	}
-	return fw.innerWriter.Write(input)
-}
-
-func newFilterWriter(innerWriter io.Writer, filters []string) *filterWriter {
-	return &filterWriter{
-		innerWriter: innerWriter,
-		filters:     filters,
-	}
-}
-
-// Suppresses raft's errors that should be debug errors
-func newConsensusFilterWriter() *filterWriter {
+// newConsensusFilterWriter returns a filter-writer which suppresses raft's errors that had been debug errors instead
+func newConsensusFilterWriter() *filterwriter.Writer {
 	const errCannotSnapshotNow = "cannot restore snapshot now, wait until the configuration entry at"
 	filters := []string{raft.ErrNothingNewToSnapshot.Error(), errCannotSnapshotNow}
-	return newFilterWriter(os.Stderr, filters)
+	return filterwriter.New(os.Stderr, filters)
 }
 
 // TODO: Maybe this should be decoupled
