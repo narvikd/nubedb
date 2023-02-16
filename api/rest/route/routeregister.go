@@ -2,8 +2,7 @@ package route
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"github.com/hashicorp/raft"
-	"nubedb/cluster/consensus/fsm"
+	"nubedb/cluster/consensus"
 	"nubedb/internal/app"
 	"nubedb/internal/config"
 )
@@ -12,8 +11,7 @@ import (
 type ApiCtx struct {
 	Config     config.Config
 	HttpServer *fiber.App
-	Consensus  *raft.Raft
-	FSM        *fsm.DatabaseFSM
+	Node       *consensus.Node
 }
 
 // newRouteCtx returns a pointer of a new instance of ApiCtx.
@@ -21,8 +19,7 @@ func newRouteCtx(app *app.App) *ApiCtx {
 	routeCtx := ApiCtx{
 		Config:     app.Config,
 		HttpServer: app.HttpServer,
-		Consensus:  app.Node.Consensus,
-		FSM:        app.Node.FSM,
+		Node:       app.Node,
 	}
 	return &routeCtx
 }
@@ -40,4 +37,6 @@ func routes(app *fiber.App, route *ApiCtx) {
 	app.Get("/consensus", route.consensusState)
 	app.Post("/consensus", route.consensusJoin)
 	app.Delete("/consensus", route.consensusRemove)
+
+	app.Get("/healthcheck", route.healthCheck)
 }

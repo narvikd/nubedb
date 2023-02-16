@@ -11,8 +11,8 @@ import (
 )
 
 func (a *ApiCtx) consensusState(fiberCtx *fiber.Ctx) error {
-	stats := a.Consensus.Stats()
-	address, id := a.Consensus.LeaderWithID()
+	stats := a.Node.Consensus.Stats()
+	address, id := a.Node.Consensus.LeaderWithID()
 	stats["leader"] = fmt.Sprintf("Address: %s Leader ID: %s", address, id)
 	return jsonresponse.OK(fiberCtx, "consensus state retrieved successfully", stats)
 }
@@ -28,11 +28,11 @@ func (a *ApiCtx) consensusJoin(fiberCtx *fiber.Ctx) error {
 		return jsonresponse.BadRequest(fiberCtx, "address can't be empty")
 	}
 
-	if a.Consensus.State() != raft.Leader {
+	if a.Node.Consensus.State() != raft.Leader {
 		return jsonresponse.BadRequest(fiberCtx, "node is not a leader")
 	}
 
-	future := a.Consensus.AddVoter(raft.ServerID(c.ID), raft.ServerAddress(c.Address), 0, 0)
+	future := a.Node.Consensus.AddVoter(raft.ServerID(c.ID), raft.ServerAddress(c.Address), 0, 0)
 	if future.Error() != nil {
 		return jsonresponse.ServerError(fiberCtx, errorskit.Wrap(future.Error(), "failed to add server").Error())
 	}
@@ -47,11 +47,11 @@ func (a *ApiCtx) consensusRemove(fiberCtx *fiber.Ctx) error {
 		return jsonresponse.BadRequest(fiberCtx, errParse.Error())
 	}
 
-	if a.Consensus.State() != raft.Leader {
+	if a.Node.Consensus.State() != raft.Leader {
 		return jsonresponse.BadRequest(fiberCtx, "node is not a leader")
 	}
 
-	future := a.Consensus.RemoveServer(raft.ServerID(c.ID), 0, 0)
+	future := a.Node.Consensus.RemoveServer(raft.ServerID(c.ID), 0, 0)
 	if future.Error() != nil {
 		return jsonresponse.ServerError(fiberCtx, errorskit.Wrap(future.Error(), "failed to remove server").Error())
 	}
