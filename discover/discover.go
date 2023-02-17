@@ -1,10 +1,12 @@
 package discover
 
 import (
-	"fmt"
+	"errors"
 	"github.com/narvikd/errorskit"
 	"github.com/narvikd/mdns"
 	"log"
+	"nubedb/cluster"
+	"nubedb/internal/config"
 	"os"
 	"sync"
 	"time"
@@ -35,7 +37,8 @@ func ServeAndBlock(port int) error {
 	return nil
 }
 
-func Search() ([]string, error) {
+// SearchNodes returns a list where currentNode is skipped
+func SearchNodes(currentNode string) ([]string, error) {
 	hosts := make(map[string]bool)
 	var lastError error
 
@@ -55,6 +58,9 @@ func Search() ([]string, error) {
 
 	result := make([]string, 0, len(hosts))
 	for host := range hosts {
+		if currentNode == host {
+			continue
+		}
 		result = append(result, host)
 	}
 
@@ -67,7 +73,6 @@ func query() ([]string, error) {
 	go func() {
 		var mu sync.Mutex
 		for entry := range entriesCh {
-			fmt.Printf("Got new entry: %v\n", entry.Host)
 			mu.Lock()
 			hosts = append(hosts, entry.Host)
 			mu.Unlock()
@@ -84,4 +89,27 @@ func query() ([]string, error) {
 		return nil, errorskit.Wrap(err, "discover search")
 	}
 	return hosts, nil
+}
+
+// SearchLeader will return an error if a leader is not found, since it skips the current node.
+//
+// If the current node is as leader, it will still return an error
+func SearchLeader(currentNode string) (string, error) {
+	nodes, errNodes := SearchNodes(currentNode)
+	if errNodes != nil {
+		return "", errNodes
+	}
+
+	for _, node := range nodes {
+		leader, err := cluster.IsLeader(config.MakeGrpcAddress(node))
+		if err != nil {
+			errorskit.LogWrap(err, "couldn't contact node while searching for leaders")
+			continue
+		}
+		if leader {
+			return node, nil
+		}
+	}
+
+	return "", errors.New("couldn't find a leader")
 }
