@@ -87,8 +87,6 @@ func (n *Node) setRaft() error {
 		snapshotThreshold = 2
 	)
 
-	serverID := raft.ServerID(n.ID)
-
 	tcpAddr, errAddr := net.ResolveTCPAddr("tcp", n.Address)
 	if errAddr != nil {
 		return errorskit.Wrap(errAddr, "couldn't resolve addr")
@@ -109,6 +107,7 @@ func (n *Node) setRaft() error {
 		return errorskit.Wrap(errSnapStore, "couldn't create consensus snapshot storage")
 	}
 
+	serverID := raft.ServerID(n.ID)
 	cfg := raft.DefaultConfig()
 	cfg.LocalID = serverID
 	cfg.SnapshotInterval = timeout
@@ -124,7 +123,7 @@ func (n *Node) setRaft() error {
 		Servers: []raft.Server{
 			{
 				ID:      serverID,
-				Address: transport.LocalAddr(),
+				Address: raft.ServerAddress(n.ID),
 			},
 		},
 	}
