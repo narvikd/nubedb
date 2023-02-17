@@ -1,6 +1,7 @@
 package consensus
 
 import (
+	"fmt"
 	"github.com/dgraph-io/badger/v3"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/raft"
@@ -9,6 +10,7 @@ import (
 	"github.com/narvikd/filekit"
 	"net"
 	"nubedb/cluster/consensus/fsm"
+	"nubedb/internal/config"
 	"os"
 	"path"
 	"path/filepath"
@@ -27,13 +29,13 @@ type Node struct {
 	consensusLogger hclog.Logger
 }
 
-func New(id string, address string) (*Node, error) {
-	n, errNode := newNode(id, address)
+func New(cfg config.Config) (*Node, error) {
+	n, errNode := newNode(cfg.CurrentNode.ID, cfg.CurrentNode.ConsensusAddress)
 	if errNode != nil {
 		return nil, errNode
 	}
 
-	errRaft := n.setRaft()
+	errRaft := n.setRaft(cfg.CurrentNode.ConsensusPort)
 	if errRaft != nil {
 		return nil, errRaft
 	}
@@ -77,7 +79,7 @@ func newFSM(dir string) (*fsm.DatabaseFSM, error) {
 	return fsm.New(db), nil
 }
 
-func (n *Node) setRaft() error {
+func (n *Node) setRaft(consensusPort int) error {
 	const (
 		timeout            = 10 * time.Second
 		maxConnectionsPool = 10
@@ -119,16 +121,22 @@ func (n *Node) setRaft() error {
 		return errorskit.Wrap(errRaft, "couldn't create new consensus")
 	}
 
-	raftCfg := raft.Configuration{
-		Servers: []raft.Server{
-			{
-				ID:      serverID,
-				Address: raft.ServerAddress(n.ID),
-			},
-		},
-	}
-
-	r.BootstrapCluster(raftCfg)
+	bootstrapConsensus(r, consensusPort)
 	n.Consensus = r
 	return nil
+}
+
+func bootstrapConsensus(r *raft.Raft, consensusPort int) {
+	var bootstrappingServers []raft.Server
+	for i := 1; i <= 3; i++ {
+		id := fmt.Sprintf("node%v", i)
+		addr := fmt.Sprintf("%s:%v", id, consensusPort)
+		srv := raft.Server{
+			ID:      raft.ServerID(id),
+			Address: raft.ServerAddress(addr),
+		}
+		bootstrappingServers = append(bootstrappingServers, srv)
+	}
+
+	r.BootstrapCluster(raft.Configuration{Servers: bootstrappingServers})
 }
