@@ -150,26 +150,12 @@ func (n *Node) startConsensus(currentNodeID string) error {
 		}
 	}
 	if future.Error() == nil && isNodePresentInServers(currentNodeID, bootstrappingServers) {
-		return nil // Consensus not bootstrapped, but node is a part of it. So it will bootstrap.
+		return nil // Consensus not bootstrapped, but node is a part of it, so it will bootstrap without any intervention.
 	}
 
 	// At this point, the consensus wasn't bootstrapped before.
-	// A bootstrapped version was created where this node isn't part of it.
-	leaderID, errSearchLeader := discover.SearchLeader(currentNodeID)
-	if errSearchLeader != nil {
-		return errSearchLeader
-	}
-
-	errJoin := cluster.ConsensusJoin(
-		currentNodeID,
-		config.MakeConsensusAddr(currentNodeID),
-		config.MakeGrpcAddress(leaderID),
-	)
-	if errJoin != nil {
-		return errJoin
-	}
-
-	return nil
+	// A bootstrap config was created where this node isn't part of it.
+	return joinNodeToExistingConsensus(currentNodeID)
 }
 
 func isNodePresentInServers(nodeID string, servers []raft.Server) bool {
@@ -179,4 +165,13 @@ func isNodePresentInServers(nodeID string, servers []raft.Server) bool {
 		}
 	}
 	return false
+}
+
+func joinNodeToExistingConsensus(nodeID string) error {
+	leaderID, errSearchLeader := discover.SearchLeader(nodeID)
+	if errSearchLeader != nil {
+		return errSearchLeader
+	}
+
+	return cluster.ConsensusJoin(nodeID, config.MakeConsensusAddr(nodeID), config.MakeGrpcAddress(leaderID))
 }
