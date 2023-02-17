@@ -109,9 +109,9 @@ func (n *Node) setRaft(consensusPort int) error {
 		return errorskit.Wrap(errSnapStore, "couldn't create consensus snapshot storage")
 	}
 
-	serverID := raft.ServerID(n.ID)
+	nodeID := raft.ServerID(n.ID)
 	cfg := raft.DefaultConfig()
-	cfg.LocalID = serverID
+	cfg.LocalID = nodeID
 	cfg.SnapshotInterval = timeout
 	cfg.SnapshotThreshold = snapshotThreshold
 	n.setConsensusLogger(cfg)
@@ -120,13 +120,13 @@ func (n *Node) setRaft(consensusPort int) error {
 	if errRaft != nil {
 		return errorskit.Wrap(errRaft, "couldn't create new consensus")
 	}
-
-	bootstrapConsensus(r, consensusPort)
 	n.Consensus = r
+
+	n.bootstrapConsensus(consensusPort)
 	return nil
 }
 
-func bootstrapConsensus(r *raft.Raft, consensusPort int) {
+func (n *Node) bootstrapConsensus(consensusPort int) {
 	var bootstrappingServers []raft.Server
 	for i := 1; i <= 3; i++ {
 		id := fmt.Sprintf("node%v", i)
@@ -138,5 +138,5 @@ func bootstrapConsensus(r *raft.Raft, consensusPort int) {
 		bootstrappingServers = append(bootstrappingServers, srv)
 	}
 
-	r.BootstrapCluster(raft.Configuration{Servers: bootstrappingServers})
+	n.Consensus.BootstrapCluster(raft.Configuration{Servers: bootstrappingServers})
 }
