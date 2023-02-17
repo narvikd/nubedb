@@ -32,8 +32,9 @@ func ServeAndBlock(port int) error {
 		return errorskit.Wrap(errService, "discover server")
 	}
 
-	defer server.Shutdown() // TODO: This maybe never shutdowns correctly
-	select {}               // Block forever
+	// TODO: This maybe never shutdowns correctly
+	defer server.Shutdown()
+	select {} // Block forever
 	return nil
 }
 
