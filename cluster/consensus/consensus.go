@@ -129,6 +129,12 @@ func (n *Node) setRaft() error {
 }
 
 func (n *Node) startConsensus(currentNodeID string) error {
+	hotCfg := n.Consensus.GetConfiguration().Configuration()
+	consensusCfg := hotCfg.Clone()
+	if len(consensusCfg.Servers) >= 2 {
+		return nil // Consensus already bootstrapped
+	}
+
 	var bootstrappingServers []raft.Server
 	for i := 1; i <= 3; i++ {
 		id := fmt.Sprintf("node%v", i)
@@ -141,8 +147,10 @@ func (n *Node) startConsensus(currentNodeID string) error {
 
 	future := n.Consensus.BootstrapCluster(raft.Configuration{Servers: bootstrappingServers})
 	if future.Error() != nil {
+		// It is safe to ignore any errors here, as described in docs.
+		// But not a voter shouldn't be ignored in order to join it to the existing consensus
 		if !strings.Contains(future.Error().Error(), "not a voter") {
-			return nil // Consensus already bootstrapped.
+			return nil
 		}
 	}
 	if future.Error() == nil && isNodePresentInServers(currentNodeID, bootstrappingServers) {
@@ -151,7 +159,11 @@ func (n *Node) startConsensus(currentNodeID string) error {
 
 	// At this point, the consensus wasn't bootstrapped before.
 	// A bootstrap config was created where this node isn't part of it.
-	return joinNodeToExistingConsensus(currentNodeID)
+	errJoin := joinNodeToExistingConsensus(currentNodeID)
+	if errJoin != nil {
+		return errorskit.Wrap(errJoin, "while bootstrapping")
+	}
+	return errJoin
 }
 
 func isNodePresentInServers(nodeID string, servers []raft.Server) bool {
