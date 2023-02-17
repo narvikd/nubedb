@@ -125,11 +125,7 @@ func (n *Node) setRaft() error {
 	}
 	n.Consensus = r
 
-	errStart := n.startConsensus(string(nodeID))
-	if errStart != nil {
-		return errStart
-	}
-	return nil
+	return n.startConsensus(string(nodeID))
 }
 
 func (n *Node) startConsensus(currentNodeID string) error {
