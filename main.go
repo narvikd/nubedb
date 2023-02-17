@@ -53,7 +53,10 @@ func start(a *app.App) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		discover.Start()
+		err := discover.ServeAndBlock(8000)
+		if err != nil {
+			log.Fatalln(err)
+		}
 	}()
 
 	wg.Wait()
