@@ -80,7 +80,9 @@ func unblockCandidate(a *app.App) {
 	}
 
 	if leader.ID == "" {
-		log.Fatalln(errPanic + "couldn't find any leader alive in the cluster. Is the node disconnected from the network?")
+		log.Fatalln(errPanic + "couldn't find any leader alive in the cluster. " +
+			"Is the node disconnected from the network?. " +
+			"ABORTING RESET: RESTARTING...")
 	}
 
 	errConsensusRemove := cluster.ConsensusRemove(a.Config.CurrentNode.ID, leader.GrpcAddress)
