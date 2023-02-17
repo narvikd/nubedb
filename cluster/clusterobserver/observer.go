@@ -6,6 +6,7 @@ import (
 	"github.com/narvikd/filekit"
 	"log"
 	"nubedb/cluster"
+	"nubedb/discover"
 	"nubedb/internal/app"
 	"nubedb/internal/config"
 	"sync"
@@ -52,40 +53,13 @@ func unblockCandidate(a *app.App) {
 
 	log.Println("node got stuck in candidate for too long... Node reinstall in progress...")
 
-	leader := config.NodeCfg{}
-
-	hotCfg := a.Node.Consensus.GetConfiguration().Configuration()
-	consensusCfg := hotCfg.Clone()
-
-	for _, srv := range consensusCfg.Servers {
-		if string(srv.ID) == a.Config.CurrentNode.ID {
-			continue
-		}
-
-		b, errComms := cluster.IsLeader(
-			config.MakeGrpcAddress(string(srv.ID)),
-		)
-		if errComms != nil {
-			errorskit.LogWrap(errComms, "couldn't contact to node while unblocking candidate")
-			continue
-		}
-
-		if b {
-			leader = config.NewNodeCfg(string(srv.ID))
-			break
-		}
-
-		// Sleep between requests to not saturate the network too quickly
-		time.Sleep(300 * time.Millisecond)
+	leader, errSearchLeader := discover.SearchLeader(a.Node.ID)
+	if errSearchLeader != nil {
+		errorskit.FatalWrap(errSearchLeader, errPanic+"couldn't search for leader")
 	}
+	leaderGrpcAddress := config.MakeGrpcAddress(leader)
 
-	if leader.ID == "" {
-		log.Fatalln(errPanic + "couldn't find any leader alive in the cluster. " +
-			"Is the node disconnected from the network?. " +
-			"ABORTING RESET: RESTARTING...")
-	}
-
-	errConsensusRemove := cluster.ConsensusRemove(a.Config.CurrentNode.ID, leader.GrpcAddress)
+	errConsensusRemove := cluster.ConsensusRemove(a.Config.CurrentNode.ID, leaderGrpcAddress)
 	if errConsensusRemove != nil {
 		errorskit.FatalWrap(errConsensusRemove, errPanic+"couldn't remove from consensus")
 	}
@@ -100,7 +74,7 @@ func unblockCandidate(a *app.App) {
 		errorskit.FatalWrap(errDeleteDirs, errPanic+"couldn't delete dirs")
 	}
 
-	errConsensusAdd := cluster.ConsensusJoin(a.Config.CurrentNode.ID, a.Config.CurrentNode.ConsensusAddress, leader.GrpcAddress)
+	errConsensusAdd := cluster.ConsensusJoin(a.Config.CurrentNode.ID, a.Config.CurrentNode.ConsensusAddress, leaderGrpcAddress)
 	if errConsensusAdd != nil {
 		errorskit.FatalWrap(errConsensusAdd, errPanic+"couldn't add node to consensus")
 	}
