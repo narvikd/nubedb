@@ -2,6 +2,7 @@ package protoserver
 
 import (
 	"context"
+	"errors"
 	"github.com/hashicorp/raft"
 	"log"
 	"nubedb/api/proto"
@@ -29,6 +30,14 @@ func (srv *server) IsLeader(ctx context.Context, req *proto.Empty) (*proto.IsLea
 
 func (srv *server) ConsensusJoin(ctx context.Context, req *proto.ConsensusRequest) (*proto.Empty, error) {
 	log.Println("[proto] (ConsensusJoin) request received, processing...")
+
+	hotCfg := srv.Consensus.GetConfiguration().Configuration()
+	consensusCfg := hotCfg.Clone()
+	for _, s := range consensusCfg.Servers {
+		if req.NodeID == string(s.ID) {
+			return &proto.Empty{}, errors.New("node was already part of the network")
+		}
+	}
 
 	future := srv.Consensus.AddVoter(raft.ServerID(req.NodeID), raft.ServerAddress(req.NodeConsensusAddr), 0, 0)
 	if future.Error() != nil {

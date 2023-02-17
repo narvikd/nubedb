@@ -8,6 +8,7 @@ services:
   node1:
     image: nubedb:latest
     container_name: node1
+    hostname: node1
     volumes:
       - ./data:/app/data
     environment:
@@ -18,6 +19,7 @@ services:
   node2:
     image: nubedb:latest
     container_name: node2
+    hostname: node2
     volumes:
       - ./data:/app/data
     environment:
@@ -28,6 +30,7 @@ services:
   node3:
     image: nubedb:latest
     container_name: node3
+    hostname: node3
     volumes:
       - ./data:/app/data
     environment:
