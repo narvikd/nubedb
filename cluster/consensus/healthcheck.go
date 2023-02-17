@@ -1,24 +1,24 @@
 package consensus
 
-import "github.com/hashicorp/raft"
+import (
+	"github.com/hashicorp/raft"
+	"math"
+	"nubedb/discover"
+	"strconv"
+)
 
 func (n *Node) IsHealthy() bool {
 	const genErr = "[NODE UNHEALTHY] - "
-	fCfg := n.Consensus.GetConfiguration()
-	if fCfg.Error() != nil {
-		n.LogWrapErr(fCfg.Error(), "couldn't get consensus configuration")
-		return false
-	}
-	hotCfg := fCfg.Configuration()
-	cfg := hotCfg.Clone()
-
+	cfg := n.Consensus.GetConfiguration().Configuration()
 	consensusServers := cfg.Servers
+	stats := n.Consensus.Stats()
+
 	if len(consensusServers) <= 1 {
 		n.consensusLogger.Warn(genErr + "only one server in configuration")
 		return false
 	}
 
-	if n.Consensus.State() != raft.Leader && n.Consensus.LastContact().IsZero() {
+	if n.Consensus.State() != raft.Leader && stats["last_contact"] == "never" {
 		n.consensusLogger.Warn(genErr + "only one server in configuration")
 		return false
 	}
@@ -34,5 +34,28 @@ func (n *Node) IsHealthy() bool {
 		return false
 	}
 
+	isQuorumPossible, errQuorum := n.isQuorumPossible()
+	if errQuorum != nil {
+		n.consensusLogger.Error(genErr + "couldn't check if quorum was possible")
+		return false
+	}
+
+	if !isQuorumPossible {
+		n.consensusLogger.Warn(genErr + "quorum is not possible due to lack of available nodes")
+		return false
+	}
+
 	return true
+}
+
+func (n *Node) isQuorumPossible() (bool, error) {
+	peers, _ := strconv.Atoi(n.Consensus.Stats()["num_peers"]) // Safe to ignore this error
+	necessaryForQuorum := math.Ceil(float64(peers) / 2.0)
+	nodesSlice, err := discover.SearchNodes(n.ID)
+	if err != nil {
+		return false, err
+	}
+
+	totalNodes := len(nodesSlice) - 1
+	return float64(totalNodes) >= necessaryForQuorum, nil
 }
