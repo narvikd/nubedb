@@ -19,14 +19,14 @@ const (
 	errGrpcTalkNode   = "failed to get an ok response from the node via grpc"
 )
 
-func Execute(cfg config.Config, consensus *raft.Raft, payload *fsm.Payload) error {
+func Execute(consensus *raft.Raft, payload *fsm.Payload) error {
 	payloadData, errMarshal := json.Marshal(&payload)
 	if errMarshal != nil {
 		return errorskit.Wrap(errMarshal, "couldn't marshal data to send it to the DB cluster")
 	}
 
 	if consensus.State() != raft.Leader {
-		return handleForwardLeaderFuture(cfg, consensus, payload)
+		return handleForwardLeaderFuture(consensus, payload)
 	}
 
 	return ApplyLeaderFuture(consensus, payloadData)
@@ -52,19 +52,19 @@ func ApplyLeaderFuture(consensus *raft.Raft, payloadData []byte) error {
 	return nil
 }
 
-func handleForwardLeaderFuture(cfg config.Config, consensus *raft.Raft, payload *fsm.Payload) error {
+func handleForwardLeaderFuture(consensus *raft.Raft, payload *fsm.Payload) error {
 	_, leaderID := consensus.LeaderWithID()
-	leaderCfg := cfg.Nodes[string(leaderID)]
-	err := forwardLeaderFuture(leaderCfg, payload)
+	err := forwardLeaderFuture(string(leaderID), payload)
 	if err != nil {
 		return errorskit.Wrap(err, errDBCluster+" At handling forward")
 	}
 	return nil
 }
 
-func forwardLeaderFuture(leaderCfg config.NodeCfg, payload *fsm.Payload) error {
+func forwardLeaderFuture(leaderID string, payload *fsm.Payload) error {
+	leaderGrpcAddr := config.MakeGrpcAddress(leaderID)
 	log.Printf("[proto] payload for leader received in this node, forwarding to leader '%s' @ '%s'\n",
-		leaderCfg.ID, leaderCfg.GrpcAddress,
+		leaderID, leaderGrpcAddr,
 	)
 
 	payloadData, errMarshal := json.Marshal(&payload)
@@ -72,7 +72,7 @@ func forwardLeaderFuture(leaderCfg config.NodeCfg, payload *fsm.Payload) error {
 		return errorskit.Wrap(errMarshal, "couldn't marshal data to send it to the Leader's DB cluster")
 	}
 
-	conn, errConn := protoclient.NewConnection(leaderCfg.GrpcAddress)
+	conn, errConn := protoclient.NewConnection(leaderGrpcAddr)
 	if errConn != nil {
 		return errConn
 	}

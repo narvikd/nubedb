@@ -8,6 +8,12 @@ import (
 	"time"
 )
 
+const (
+	ApiPort       = 3001
+	ConsensusPort = 3002
+	GrpcPort      = 3003
+)
+
 type NodeCfg struct {
 	ID               string
 	ApiPort          int
@@ -20,7 +26,6 @@ type NodeCfg struct {
 
 type Config struct {
 	CurrentNode NodeCfg
-	Nodes       map[string]NodeCfg
 }
 
 func New() (Config, error) {
@@ -35,40 +40,24 @@ func New() (Config, error) {
 		return Config{}, fmt.Errorf("no host found for: %s", currentNodeID)
 	}
 
-	nodes := make(map[string]NodeCfg)
-	for i := 1; i <= 3; i++ {
-		n := fmt.Sprintf("node%v", i)
-		nodes[n] = newNodeCfg(n)
-	}
-
-	currentNode, exist := nodes[currentNodeID]
-	if !exist {
-		return Config{}, fmt.Errorf("current node not found in nodes: %s", currentNodeID)
-	}
-
-	cfg := Config{
-		CurrentNode: currentNode,
-		Nodes:       nodes,
-	}
+	cfg := Config{CurrentNode: NewNodeCfg(currentNodeID)}
 	return cfg, nil
 }
 
-func newNodeCfg(nodeID string) NodeCfg {
-	const (
-		apiPort       = 3001
-		consensusPort = 3002
-		grpcPort      = 3003
-	)
-
+func NewNodeCfg(nodeID string) NodeCfg {
 	return NodeCfg{
 		ID:               nodeID,
-		ApiPort:          apiPort,
-		ApiAddress:       makeAddr(nodeID, apiPort),
-		ConsensusPort:    consensusPort,
-		ConsensusAddress: makeAddr(nodeID, consensusPort),
-		GrpcPort:         grpcPort,
-		GrpcAddress:      makeAddr(nodeID, grpcPort),
+		ApiPort:          ApiPort,
+		ApiAddress:       makeAddr(nodeID, ApiPort),
+		ConsensusPort:    ConsensusPort,
+		ConsensusAddress: makeAddr(nodeID, ConsensusPort),
+		GrpcPort:         GrpcPort,
+		GrpcAddress:      MakeGrpcAddress(nodeID),
 	}
+}
+
+func MakeGrpcAddress(nodeID string) string {
+	return makeAddr(nodeID, GrpcPort)
 }
 
 func makeAddr(host string, port int) string {
