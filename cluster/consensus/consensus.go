@@ -129,8 +129,7 @@ func (n *Node) setRaft() error {
 }
 
 func (n *Node) startConsensus(currentNodeID string) error {
-	hotCfg := n.Consensus.GetConfiguration().Configuration()
-	consensusCfg := hotCfg.Clone()
+	consensusCfg := n.Consensus.GetConfiguration().Configuration()
 	if len(consensusCfg.Servers) >= 2 {
 		return nil // Consensus already bootstrapped
 	}
