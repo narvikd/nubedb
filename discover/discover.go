@@ -2,8 +2,8 @@ package discover
 
 import (
 	"fmt"
-	"github.com/hashicorp/mdns"
 	"github.com/narvikd/errorskit"
+	"github.com/narvikd/mdns"
 	"log"
 	"os"
 	"sync"
