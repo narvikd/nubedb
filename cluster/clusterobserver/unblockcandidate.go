@@ -9,32 +9,13 @@ import (
 	"nubedb/discover"
 	"nubedb/internal/app"
 	"nubedb/internal/config"
-	"sync"
 	"time"
 )
-
-func Launch(a *app.App) {
-	var wg sync.WaitGroup
-	log.Println("observer registered, sleeping...")
-	log.Println("observer awake, launching...")
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		for {
-			handleUnblockCandidate(a)
-			time.Sleep(10 * time.Second)
-		}
-	}()
-
-	wg.Wait()
-}
 
 func handleUnblockCandidate(a *app.App) {
 	const timeout = 10 * time.Second
 
-	hotCfg := a.Node.Consensus.GetConfiguration().Configuration()
-	consensusCfg := hotCfg.Clone()
+	consensusCfg := a.Node.Consensus.GetConfiguration().Configuration()
 
 	// If the server count is superior to 2, it means that the candidate was part of a cluster configuration,
 	// and the server isn't coincidentally being bootstrapped.
