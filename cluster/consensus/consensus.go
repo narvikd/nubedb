@@ -9,11 +9,14 @@ import (
 	"github.com/narvikd/errorskit"
 	"github.com/narvikd/filekit"
 	"net"
+	"nubedb/cluster"
 	"nubedb/cluster/consensus/fsm"
+	"nubedb/discover"
 	"nubedb/internal/config"
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -35,7 +38,7 @@ func New(cfg config.Config) (*Node, error) {
 		return nil, errNode
 	}
 
-	errRaft := n.setRaft(cfg.CurrentNode.ConsensusPort)
+	errRaft := n.setRaft()
 	if errRaft != nil {
 		return nil, errRaft
 	}
@@ -79,7 +82,7 @@ func newFSM(dir string) (*fsm.DatabaseFSM, error) {
 	return fsm.New(db), nil
 }
 
-func (n *Node) setRaft(consensusPort int) error {
+func (n *Node) setRaft() error {
 	const (
 		timeout            = 10 * time.Second
 		maxConnectionsPool = 10
@@ -122,21 +125,49 @@ func (n *Node) setRaft(consensusPort int) error {
 	}
 	n.Consensus = r
 
-	n.bootstrapConsensus(consensusPort)
-	return nil
+	return n.startConsensus(string(nodeID))
 }
 
-func (n *Node) bootstrapConsensus(consensusPort int) {
+func (n *Node) startConsensus(currentNodeID string) error {
 	var bootstrappingServers []raft.Server
 	for i := 1; i <= 3; i++ {
 		id := fmt.Sprintf("node%v", i)
-		addr := fmt.Sprintf("%s:%v", id, consensusPort)
 		srv := raft.Server{
 			ID:      raft.ServerID(id),
-			Address: raft.ServerAddress(addr),
+			Address: raft.ServerAddress(config.MakeConsensusAddr(id)),
 		}
 		bootstrappingServers = append(bootstrappingServers, srv)
 	}
 
-	n.Consensus.BootstrapCluster(raft.Configuration{Servers: bootstrappingServers})
+	future := n.Consensus.BootstrapCluster(raft.Configuration{Servers: bootstrappingServers})
+	if future.Error() != nil {
+		if !strings.Contains(future.Error().Error(), "not a voter") {
+			return nil // Consensus already bootstrapped.
+		}
+	}
+	if future.Error() == nil && isNodePresentInServers(currentNodeID, bootstrappingServers) {
+		return nil // Consensus not bootstrapped, but node is a part of it, so it will bootstrap without any intervention.
+	}
+
+	// At this point, the consensus wasn't bootstrapped before.
+	// A bootstrap config was created where this node isn't part of it.
+	return joinNodeToExistingConsensus(currentNodeID)
+}
+
+func isNodePresentInServers(nodeID string, servers []raft.Server) bool {
+	for _, server := range servers {
+		if nodeID == string(server.ID) {
+			return true
+		}
+	}
+	return false
+}
+
+func joinNodeToExistingConsensus(nodeID string) error {
+	leaderID, errSearchLeader := discover.SearchLeader(nodeID)
+	if errSearchLeader != nil {
+		return errSearchLeader
+	}
+
+	return cluster.ConsensusJoin(nodeID, config.MakeConsensusAddr(nodeID), config.MakeGrpcAddress(leaderID))
 }
