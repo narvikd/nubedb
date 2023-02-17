@@ -33,7 +33,9 @@ func ServeAndBlock(port int) error {
 	}
 
 	// TODO: This maybe never shutdowns correctly
-	defer server.Shutdown()
+	defer func(server *mdns.Server) {
+		_ = server.Shutdown()
+	}(server)
 	select {} // Block forever
 	return nil
 }
