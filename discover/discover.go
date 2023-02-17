@@ -14,22 +14,22 @@ import (
 
 const serviceName = "_nubedb._tcp"
 
-func ServeAndBlock(port int) error {
+func ServeAndBlock(port int) {
 	host, errHostname := os.Hostname()
 	if errHostname != nil {
-		return errorskit.Wrap(errHostname, "couldn't find hostname")
+		errorskit.FatalWrap(errHostname, "couldn't find hostname")
 	}
 
 	info := []string{"nubedb Discover"}
 	service, errService := mdns.NewMDNSService(host, serviceName, "", "", port, nil, info)
 	if errService != nil {
-		return errorskit.Wrap(errService, "discover service")
+		errorskit.FatalWrap(errService, "discover service")
 	}
 
 	// Create the mDNS server, defer shutdown
 	server, errServer := mdns.NewServer(&mdns.Config{Zone: service})
 	if errServer != nil {
-		return errorskit.Wrap(errService, "discover server")
+		errorskit.FatalWrap(errService, "discover server")
 	}
 
 	// TODO: This maybe never shutdowns correctly
@@ -37,7 +37,6 @@ func ServeAndBlock(port int) error {
 		_ = server.Shutdown()
 	}(server)
 	select {} // Block forever
-	return nil
 }
 
 // SearchNodes returns a list where currentNode is skipped
