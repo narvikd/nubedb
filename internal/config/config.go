@@ -48,12 +48,20 @@ func NewNodeCfg(nodeID string) NodeCfg {
 	return NodeCfg{
 		ID:               nodeID,
 		ApiPort:          ApiPort,
-		ApiAddress:       makeAddr(nodeID, ApiPort),
+		ApiAddress:       MakeApiAddr(nodeID),
 		ConsensusPort:    ConsensusPort,
-		ConsensusAddress: makeAddr(nodeID, ConsensusPort),
+		ConsensusAddress: MakeConsensusAddr(nodeID),
 		GrpcPort:         GrpcPort,
 		GrpcAddress:      MakeGrpcAddress(nodeID),
 	}
+}
+
+func MakeApiAddr(nodeID string) string {
+	return makeAddr(nodeID, ApiPort)
+}
+
+func MakeConsensusAddr(nodeID string) string {
+	return makeAddr(nodeID, ConsensusPort)
 }
 
 func MakeGrpcAddress(nodeID string) string {
