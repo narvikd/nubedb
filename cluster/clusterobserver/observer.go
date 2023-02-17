@@ -14,8 +14,7 @@ import (
 
 func Launch(a *app.App) {
 	var wg sync.WaitGroup
-	log.Println("observer launched, sleeping...")
-	time.Sleep(10 * time.Second)
+	log.Println("observer registered, sleeping...")
 	log.Println("observer awake, launching...")
 
 	wg.Add(1)
@@ -31,11 +30,18 @@ func Launch(a *app.App) {
 }
 
 func handleUnblockCandidate(a *app.App) {
-	const timeout = 20 * time.Second
-	if a.Node.Consensus.State() == raft.Candidate {
+	const timeout = 10 * time.Second
+
+	hotCfg := a.Node.Consensus.GetConfiguration().Configuration()
+	consensusCfg := hotCfg.Clone()
+
+	// If the server count is superior to 2, it means that the candidate was part of a cluster configuration,
+	// and the server isn't coincidentally being bootstrapped.
+	isNodeConsensusBlocked := a.Node.Consensus.State() == raft.Candidate && len(consensusCfg.Servers) >= 2
+	if isNodeConsensusBlocked {
 		time.Sleep(timeout)
-		// If a minute has passed, and I'm still a candidate, there's a problem
-		if a.Node.Consensus.State() == raft.Candidate {
+		// If a minute has passed, and I'm still blocked, there's a real problem.
+		if isNodeConsensusBlocked {
 			unblockCandidate(a)
 		}
 	}
