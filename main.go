@@ -53,7 +53,7 @@ func start(a *app.App) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		discover.ServeAndBlock(8000)
+		discover.ServeAndBlock(a.Config.CurrentNode.ID, 8000)
 	}()
 
 	wg.Wait()

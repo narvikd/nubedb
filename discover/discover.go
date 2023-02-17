@@ -7,21 +7,15 @@ import (
 	"log"
 	"nubedb/cluster"
 	"nubedb/internal/config"
-	"os"
 	"sync"
 	"time"
 )
 
 const serviceName = "_nubedb._tcp"
 
-func ServeAndBlock(port int) {
-	host, errHostname := os.Hostname()
-	if errHostname != nil {
-		errorskit.FatalWrap(errHostname, "couldn't find hostname")
-	}
-
+func ServeAndBlock(nodeID string, port int) {
 	info := []string{"nubedb Discover"}
-	service, errService := mdns.NewMDNSService(host, serviceName, "", "", port, nil, info)
+	service, errService := mdns.NewMDNSService(nodeID, serviceName, "", "", port, nil, info)
 	if errService != nil {
 		errorskit.FatalWrap(errService, "discover service")
 	}
