@@ -5,6 +5,7 @@ import (
 	"github.com/narvikd/errorskit"
 	"github.com/narvikd/mdns"
 	"log"
+	"net"
 	"nubedb/cluster"
 	"nubedb/internal/config"
 	"sync"
@@ -14,16 +15,23 @@ import (
 const serviceName = "_nubedb._tcp"
 
 func ServeAndBlock(nodeID string, port int) {
+	const errGen = "Discover serve and block: "
 	info := []string{"nubedb Discover"}
-	service, errService := mdns.NewMDNSService(nodeID, serviceName, "", "", port, nil, info)
+
+	ip, errGetIP := getIP(nodeID)
+	if errGetIP != nil {
+		errorskit.FatalWrap(errGetIP, errGen)
+	}
+
+	service, errService := mdns.NewMDNSService(nodeID, serviceName, "", "", port, []net.IP{ip}, info)
 	if errService != nil {
-		errorskit.FatalWrap(errService, "discover service")
+		errorskit.FatalWrap(errService, errGen+"discover service")
 	}
 
 	// Create the mDNS server, defer shutdown
 	server, errServer := mdns.NewServer(&mdns.Config{Zone: service})
 	if errServer != nil {
-		errorskit.FatalWrap(errService, "discover server")
+		errorskit.FatalWrap(errService, errGen+"discover server")
 	}
 
 	// TODO: This maybe never shutdowns correctly
@@ -31,6 +39,15 @@ func ServeAndBlock(nodeID string, port int) {
 		_ = server.Shutdown()
 	}(server)
 	select {} // Block forever
+}
+
+func getIP(nodeID string) (net.IP, error) {
+	hosts, errLookup := net.LookupHost(nodeID)
+	if errLookup != nil {
+		return nil, errorskit.Wrap(errLookup, "couldn't lookup host")
+	}
+
+	return net.ParseIP(hosts[0]), nil
 }
 
 // SearchNodes returns a list where currentNode is skipped
