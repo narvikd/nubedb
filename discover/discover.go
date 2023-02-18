@@ -2,12 +2,14 @@ package discover
 
 import (
 	"errors"
+	"fmt"
 	"github.com/narvikd/errorskit"
 	"github.com/narvikd/mdns"
 	"log"
 	"net"
 	"nubedb/cluster"
 	"nubedb/internal/config"
+	"strings"
 	"sync"
 	"time"
 )
@@ -63,7 +65,10 @@ func SearchNodes(currentNode string) ([]string, error) {
 			continue
 		}
 
-		for _, host := range hostsQuery {
+		for _, h := range hostsQuery {
+			// In some linux versions it reports "$name." (name and a dot)
+			hs := strings.Split(h, ".")
+			host := hs[0]
 			hosts[host] = true
 		}
 		time.Sleep(100 * time.Millisecond) // TODO: Try to refactor this
@@ -112,6 +117,8 @@ func SearchLeader(currentNode string) (string, error) {
 	if errNodes != nil {
 		return "", errNodes
 	}
+
+	fmt.Println("SEARCH LEADER NODES", nodes)
 
 	for _, node := range nodes {
 		leader, err := cluster.IsLeader(config.MakeGrpcAddress(node))
