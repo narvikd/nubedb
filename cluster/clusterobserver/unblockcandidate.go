@@ -13,13 +13,11 @@ import (
 )
 
 func handleUnblockCandidate(a *app.App) {
-	const timeout = 10 * time.Second
-
-	consensusCfg := a.Node.Consensus.GetConfiguration().Configuration()
-
+	const timeout = 20 * time.Second
+	servers := a.Node.Consensus.GetConfiguration().Configuration().Servers
 	// If the server count is superior to 2, it means that the candidate was part of a cluster configuration,
 	// and the server isn't coincidentally being bootstrapped.
-	isNodeConsensusBlocked := a.Node.Consensus.State() == raft.Candidate && len(consensusCfg.Servers) >= 2
+	isNodeConsensusBlocked := a.Node.Consensus.State() == raft.Candidate && len(servers) >= 2
 	if isNodeConsensusBlocked {
 		time.Sleep(timeout)
 		// If a minute has passed, and I'm still blocked, there's a real problem.
