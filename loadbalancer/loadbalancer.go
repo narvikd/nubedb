@@ -43,7 +43,9 @@ func (l *LB) getNextNode() *url.URL {
 }
 
 func Start(a *app.App, port int) {
-	time.Sleep(10 * time.Second)
+	timeout := 10 * time.Second
+	time.Sleep(timeout)
+
 	log.Println("Load balancer Started")
 	srvs := a.Node.Consensus.GetConfiguration().Configuration().Servers
 	lb := &LB{}
@@ -51,8 +53,12 @@ func Start(a *app.App, port int) {
 
 	updateNodesPeriodically(a, lb)
 
-	addr := fmt.Sprintf(":%v", port)
-	err := http.ListenAndServe(addr, lb)
+	httpServ := &http.Server{
+		Addr:              fmt.Sprintf(":%v", port),
+		Handler:           lb,
+		ReadHeaderTimeout: timeout, // GoSec: G114
+	}
+	err := httpServ.ListenAndServe()
 	if err != nil {
 		log.Fatalln(err)
 	}
