@@ -10,6 +10,7 @@ import (
 	"nubedb/discover"
 	"nubedb/internal/app"
 	"nubedb/internal/config"
+	"nubedb/loadbalancer"
 	"runtime"
 	"sync"
 )
@@ -53,7 +54,13 @@ func start(a *app.App) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		discover.ServeAndBlock(a.Config.CurrentNode.ID, 8000)
+		discover.ServeAndBlock(a.Config.CurrentNode.ID, 8001)
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		loadbalancer.Start(a, 8000)
 	}()
 
 	wg.Wait()
