@@ -50,20 +50,19 @@ func (n *Node) registerFailedHBChangesChan() {
 
 func (n *Node) logNewNodeChange() {
 	go func() {
-		for obs := range n.nodeChangesChan {
-			dataType := obs.Data.(raft.RaftState)
-			n.consensusLogger.Info("Node Changed to role: " + dataType.String())
+		for o := range n.nodeChangesChan {
+			n.consensusLogger.Info("Node Changed to role: " + o.Data.(raft.RaftState).String())
 		}
 	}()
 }
 
 func (n *Node) logNewLeader() {
 	go func() {
-		for obs := range n.leaderChangesChan {
-			dataType := obs.Data.(raft.LeaderObservation)
-			leaderID := string(dataType.LeaderID)
+		for o := range n.leaderChangesChan {
+			obs := o.Data.(raft.LeaderObservation)
+			leaderID := string(obs.LeaderID)
 			if leaderID != "" {
-				n.consensusLogger.Info("New Leader: " + string(dataType.LeaderID))
+				n.consensusLogger.Info("New Leader: " + leaderID)
 			} else {
 				n.consensusLogger.Info("No Leader available in the Cluster")
 			}
@@ -73,11 +72,11 @@ func (n *Node) logNewLeader() {
 
 func (n *Node) logNewHBChange() {
 	go func() {
-		for obs := range n.failedHBChangesChan {
-			dataType := obs.Data.(raft.FailedHeartbeatObservation)
-			duration := time.Since(dataType.LastContact)
+		for o := range n.failedHBChangesChan {
+			obs := o.Data.(raft.FailedHeartbeatObservation)
+			duration := time.Since(obs.LastContact)
 			msg := fmt.Sprintf("HB FAILED FOR NODE '%v' for %s seconds ",
-				dataType.PeerID, duration.Round(time.Second).String(),
+				obs.PeerID, duration.Round(time.Second).String(),
 			)
 			n.consensusLogger.Info("HB FAILED: " + msg)
 		}
