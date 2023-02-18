@@ -6,6 +6,7 @@ import (
 	"nubedb/api/proto/protoserver"
 	"nubedb/api/rest/middleware"
 	"nubedb/api/rest/route"
+	"nubedb/cluster/unblockcandidate"
 	"nubedb/discover"
 	"nubedb/internal/app"
 	"nubedb/internal/config"
@@ -41,6 +42,12 @@ func start(a *app.App) {
 	go func() {
 		defer wg.Done()
 		startApiProto(a)
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		unblockcandidate.Do(a)
 	}()
 
 	wg.Add(1)
