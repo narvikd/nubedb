@@ -51,11 +51,19 @@ func (n *Node) IsHealthy() bool {
 func (n *Node) isQuorumPossible() (bool, error) {
 	peers, _ := strconv.Atoi(n.Consensus.Stats()["num_peers"]) // Safe to ignore this error
 	necessaryForQuorum := math.Ceil(float64(peers) / 2.0)
-	nodesSlice, err := discover.SearchNodes(n.ID)
+	totalNodes, err := getAliveNodes(n.ID)
 	if err != nil {
 		return false, err
 	}
+	return float64(totalNodes) >= necessaryForQuorum, nil
+}
+
+func getAliveNodes(currentNodeID string) (int, error) {
+	nodesSlice, err := discover.SearchNodes(currentNodeID)
+	if err != nil {
+		return -1, err
+	}
 
 	totalNodes := len(nodesSlice) - 1
-	return float64(totalNodes) >= necessaryForQuorum, nil
+	return totalNodes, nil
 }
