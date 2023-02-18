@@ -2,9 +2,9 @@ package config
 
 import (
 	"fmt"
+	"github.com/narvikd/errorskit"
 	"github.com/narvikd/resolver"
 	"os"
-	"strings"
 	"time"
 )
 
@@ -30,18 +30,15 @@ type Config struct {
 
 func New() (Config, error) {
 	const resolverTimeout = 300 * time.Millisecond
-	currentNodeID := os.Getenv("NODE")
-
-	if !strings.Contains(currentNodeID, "node") {
-		return Config{}, fmt.Errorf("NODE env variable not set or is incorrect: %s", currentNodeID)
+	hostname, errHostname := os.Hostname()
+	if errHostname != nil {
+		return Config{}, errorskit.Wrap(errHostname, "couldn't get hostname on Config generation")
 	}
 
-	if !resolver.IsHostAlive(currentNodeID, resolverTimeout) {
-		return Config{}, fmt.Errorf("no host found for: %s", currentNodeID)
+	if !resolver.IsHostAlive(hostname, resolverTimeout) {
+		return Config{}, fmt.Errorf("no host found for: %s", hostname)
 	}
-
-	cfg := Config{CurrentNode: NewNodeCfg(currentNodeID)}
-	return cfg, nil
+	return Config{CurrentNode: NewNodeCfg(hostname)}, nil
 }
 
 func NewNodeCfg(nodeID string) NodeCfg {
