@@ -20,17 +20,18 @@ import (
 )
 
 type Node struct {
-	Consensus         *raft.Raft
-	FSM               *fsm.DatabaseFSM
-	ID                string `json:"id" validate:"required"`
-	Address           string `json:"address"`
-	Dir               string
-	storageDir        string
-	snapshotsDir      string
-	consensusDB       string
-	consensusLogger   hclog.Logger
-	nodeChangesChan   chan raft.Observation
-	leaderChangesChan chan raft.Observation
+	Consensus           *raft.Raft
+	FSM                 *fsm.DatabaseFSM
+	ID                  string `json:"id" validate:"required"`
+	Address             string `json:"address"`
+	Dir                 string
+	storageDir          string
+	snapshotsDir        string
+	consensusDB         string
+	consensusLogger     hclog.Logger
+	nodeChangesChan     chan raft.Observation
+	leaderChangesChan   chan raft.Observation
+	failedHBChangesChan chan raft.Observation
 }
 
 func New(cfg config.Config) (*Node, error) {

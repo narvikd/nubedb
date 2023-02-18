@@ -1,10 +1,15 @@
 package consensus
 
-import "github.com/hashicorp/raft"
+import (
+	"fmt"
+	"github.com/hashicorp/raft"
+	"time"
+)
 
 func (n *Node) registerObservers() {
 	n.registerNodeChangesChan()
 	n.registerLeaderChangesChan()
+	n.registerFailedHBChangesChan()
 }
 
 func (n *Node) registerNodeChangesChan() {
@@ -31,6 +36,18 @@ func (n *Node) registerLeaderChangesChan() {
 	n.logNewLeader()
 }
 
+func (n *Node) registerFailedHBChangesChan() {
+	n.failedHBChangesChan = make(chan raft.Observation)
+	observer := raft.NewObserver(n.failedHBChangesChan, true, func(o *raft.Observation) bool {
+		_, ok := o.Data.(raft.FailedHeartbeatObservation)
+		return ok
+	})
+	n.Consensus.RegisterObserver(observer)
+
+	// Call methods
+	n.logNewHBChange()
+}
+
 func (n *Node) logNewNodeChange() {
 	go func() {
 		for obs := range n.nodeChangesChan {
@@ -50,6 +67,19 @@ func (n *Node) logNewLeader() {
 			} else {
 				n.consensusLogger.Info("No Leader available in the Cluster")
 			}
+		}
+	}()
+}
+
+func (n *Node) logNewHBChange() {
+	go func() {
+		for obs := range n.failedHBChangesChan {
+			dataType := obs.Data.(raft.FailedHeartbeatObservation)
+			duration := time.Since(dataType.LastContact)
+			msg := fmt.Sprintf("HB FAILED FOR NODE '%v' for %s seconds ",
+				dataType.PeerID, duration.Round(time.Second).String(),
+			)
+			n.consensusLogger.Info("HB FAILED: " + msg)
 		}
 	}()
 }
