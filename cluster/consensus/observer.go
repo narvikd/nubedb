@@ -45,7 +45,7 @@ func (n *Node) registerFailedHBChangesChan() {
 	n.Consensus.RegisterObserver(observer)
 
 	// Call methods
-	n.logNewHBChange()
+	n.removeNodesOnHBStrategy()
 }
 
 func (n *Node) logNewNodeChange() {
@@ -70,15 +70,24 @@ func (n *Node) logNewLeader() {
 	}()
 }
 
-func (n *Node) logNewHBChange() {
+func (n *Node) removeNodesOnHBStrategy() {
 	go func() {
+		const timeout = 1.0
 		for o := range n.failedHBChangesChan {
 			obs := o.Data.(raft.FailedHeartbeatObservation)
 			duration := time.Since(obs.LastContact)
-			msg := fmt.Sprintf("HB FAILED FOR NODE '%v' for %s seconds ",
-				obs.PeerID, duration.Round(time.Second).String(),
-			)
-			n.consensusLogger.Info("HB FAILED: " + msg)
+			durationMins := duration.Minutes()
+
+			if durationMins >= timeout {
+				warnMsg := fmt.Sprintf(
+					"REMOVING NODE '%v' from the Leader due to not having a connection for %v minutes...",
+					obs.PeerID, durationMins,
+				)
+				n.consensusLogger.Warn(warnMsg)
+				n.Consensus.RemoveServer(obs.PeerID, 0, 0)
+				n.consensusLogger.Warn("NODE SUCCESSFULLY REMOVED FROM STATE CONSENSUS")
+			}
+
 		}
 	}()
 }
