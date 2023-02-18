@@ -6,7 +6,7 @@ import (
 	"nubedb/api/proto/protoserver"
 	"nubedb/api/rest/middleware"
 	"nubedb/api/rest/route"
-	"nubedb/cluster/clusterobserver"
+	"nubedb/cluster/unblockcandidate"
 	"nubedb/discover"
 	"nubedb/internal/app"
 	"nubedb/internal/config"
@@ -47,7 +47,7 @@ func start(a *app.App) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		clusterobserver.Launch(a)
+		unblockcandidate.Do(a)
 	}()
 
 	wg.Add(1)

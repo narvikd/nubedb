@@ -1,7 +1,6 @@
 package consensus
 
 import (
-	"fmt"
 	"github.com/dgraph-io/badger/v3"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/raft"
@@ -21,17 +20,18 @@ import (
 )
 
 type Node struct {
-	Consensus         *raft.Raft
-	FSM               *fsm.DatabaseFSM
-	ID                string `json:"id" validate:"required"`
-	Address           string `json:"address"`
-	Dir               string
-	storageDir        string
-	snapshotsDir      string
-	consensusDB       string
-	consensusLogger   hclog.Logger
-	nodeChangesChan   chan raft.Observation
-	leaderChangesChan chan raft.Observation
+	Consensus           *raft.Raft
+	FSM                 *fsm.DatabaseFSM
+	ID                  string `json:"id" validate:"required"`
+	Address             string `json:"address"`
+	Dir                 string
+	storageDir          string
+	snapshotsDir        string
+	consensusDB         string
+	consensusLogger     hclog.Logger
+	nodeChangesChan     chan raft.Observation
+	leaderChangesChan   chan raft.Observation
+	failedHBChangesChan chan raft.Observation
 }
 
 func New(cfg config.Config) (*Node, error) {
@@ -132,26 +132,22 @@ func (n *Node) setRaft() error {
 		return errStartConsensus
 	}
 
-	n.registerNodeChangesChan()
-	n.registerLeaderChangesChan()
-
+	n.registerObservers()
 	return nil
 }
 
 func (n *Node) startConsensus(currentNodeID string) error {
+	const bootstrappingLeader = "bootstrap-node"
 	consensusCfg := n.Consensus.GetConfiguration().Configuration()
 	if len(consensusCfg.Servers) >= 2 {
 		return nil // Consensus already bootstrapped
 	}
 
-	var bootstrappingServers []raft.Server
-	for i := 1; i <= 3; i++ {
-		id := fmt.Sprintf("node%v", i)
-		srv := raft.Server{
-			ID:      raft.ServerID(id),
-			Address: raft.ServerAddress(config.MakeConsensusAddr(id)),
-		}
-		bootstrappingServers = append(bootstrappingServers, srv)
+	bootstrappingServers := []raft.Server{
+		{
+			ID:      raft.ServerID(bootstrappingLeader),
+			Address: raft.ServerAddress(config.MakeConsensusAddr(bootstrappingLeader)),
+		},
 	}
 
 	future := n.Consensus.BootstrapCluster(raft.Configuration{Servers: bootstrappingServers})
@@ -170,9 +166,14 @@ func (n *Node) startConsensus(currentNodeID string) error {
 	// A bootstrap config was created where this node isn't part of it.
 	errJoin := joinNodeToExistingConsensus(currentNodeID)
 	if errJoin != nil {
+		errLower := strings.ToLower(errJoin.Error())
+		if strings.Contains(errLower, "was already part of the network") {
+			return nil
+		}
 		return errorskit.Wrap(errJoin, "while bootstrapping")
 	}
-	return errJoin
+
+	return nil
 }
 
 func isNodePresentInServers(nodeID string, servers []raft.Server) bool {
@@ -189,53 +190,5 @@ func joinNodeToExistingConsensus(nodeID string) error {
 	if errSearchLeader != nil {
 		return errSearchLeader
 	}
-
 	return cluster.ConsensusJoin(nodeID, config.MakeConsensusAddr(nodeID), config.MakeGrpcAddress(leaderID))
-}
-
-func (n *Node) registerNodeChangesChan() {
-	n.nodeChangesChan = make(chan raft.Observation)
-	observer := raft.NewObserver(n.nodeChangesChan, true, func(o *raft.Observation) bool {
-		_, ok := o.Data.(raft.RaftState)
-		return ok
-	})
-	n.Consensus.RegisterObserver(observer)
-
-	// Call methods
-	n.logNewNodeChange()
-}
-
-func (n *Node) registerLeaderChangesChan() {
-	n.leaderChangesChan = make(chan raft.Observation)
-	observer := raft.NewObserver(n.leaderChangesChan, true, func(o *raft.Observation) bool {
-		_, ok := o.Data.(raft.LeaderObservation)
-		return ok
-	})
-	n.Consensus.RegisterObserver(observer)
-
-	// Call methods
-	n.logNewLeader()
-}
-
-func (n *Node) logNewNodeChange() {
-	go func() {
-		for obs := range n.nodeChangesChan {
-			dataType := obs.Data.(raft.RaftState)
-			n.consensusLogger.Info("Node Changed to role: " + dataType.String())
-		}
-	}()
-}
-
-func (n *Node) logNewLeader() {
-	go func() {
-		for obs := range n.leaderChangesChan {
-			dataType := obs.Data.(raft.LeaderObservation)
-			leaderID := string(dataType.LeaderID)
-			if leaderID != "" {
-				n.consensusLogger.Info("New Leader: " + string(dataType.LeaderID))
-			} else {
-				n.consensusLogger.Info("No Leader available in the Cluster")
-			}
-		}
-	}()
 }

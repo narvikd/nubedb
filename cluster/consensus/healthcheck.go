@@ -2,8 +2,8 @@ package consensus
 
 import (
 	"github.com/hashicorp/raft"
-	"github.com/narvikd/resolver"
 	"math"
+	"nubedb/pkg/resolver"
 	"strconv"
 	"time"
 )

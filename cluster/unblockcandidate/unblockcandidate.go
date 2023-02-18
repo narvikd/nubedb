@@ -1,4 +1,4 @@
-package clusterobserver
+package unblockcandidate
 
 import (
 	"github.com/hashicorp/raft"
@@ -12,19 +12,23 @@ import (
 	"time"
 )
 
-func handleUnblockCandidate(a *app.App) {
-	const timeout = 20 * time.Second
-	servers := a.Node.Consensus.GetConfiguration().Configuration().Servers
-	// If the server count is superior to 2, it means that the candidate was part of a cluster configuration,
-	// and the server isn't coincidentally being bootstrapped.
-	isNodeConsensusBlocked := a.Node.Consensus.State() == raft.Candidate && len(servers) >= 2
-	if isNodeConsensusBlocked {
-		time.Sleep(timeout)
-		// If a minute has passed, and I'm still blocked, there's a real problem.
-		if isNodeConsensusBlocked {
-			unblockCandidate(a)
+func Do(a *app.App) {
+	go func() {
+		for {
+			const timeout = 20 * time.Second
+			// If the node is stuck in a candidate position for 20 seconds, it's blocked.
+			// There's no scenario where the node is a candidate for more than 10 seconds,
+			// and it's not part of a bootstrapped service.
+			if a.Node.Consensus.State() == raft.Candidate {
+				time.Sleep(timeout)
+				// If a minute has passed, and I'm still blocked, there's a real problem.
+				if a.Node.Consensus.State() == raft.Candidate {
+					unblockCandidate(a)
+				}
+			}
+			time.Sleep(10 * time.Second)
 		}
-	}
+	}()
 }
 
 func unblockCandidate(a *app.App) {
@@ -51,11 +55,6 @@ func unblockCandidate(a *app.App) {
 	errDeleteDirs := filekit.DeleteDirs(a.Node.Dir)
 	if errDeleteDirs != nil {
 		errorskit.FatalWrap(errDeleteDirs, errPanic+"couldn't delete dirs")
-	}
-
-	errConsensusAdd := cluster.ConsensusJoin(a.Config.CurrentNode.ID, a.Config.CurrentNode.ConsensusAddress, leaderGrpcAddress)
-	if errConsensusAdd != nil {
-		errorskit.FatalWrap(errConsensusAdd, errPanic+"couldn't add node to consensus")
 	}
 
 	log.Fatalln("Node successfully reset. Restarting...")

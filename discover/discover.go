@@ -8,6 +8,7 @@ import (
 	"net"
 	"nubedb/cluster"
 	"nubedb/internal/config"
+	"strings"
 	"sync"
 	"time"
 )
@@ -64,6 +65,8 @@ func SearchNodes(currentNode string) ([]string, error) {
 		}
 
 		for _, host := range hostsQuery {
+			// In some linux versions it reports "$name." (name and a dot)
+			host = strings.ReplaceAll(host, ".", "")
 			hosts[host] = true
 		}
 		time.Sleep(100 * time.Millisecond) // TODO: Try to refactor this
