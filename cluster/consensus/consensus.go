@@ -166,9 +166,14 @@ func (n *Node) startConsensus(currentNodeID string) error {
 	// A bootstrap config was created where this node isn't part of it.
 	errJoin := joinNodeToExistingConsensus(currentNodeID)
 	if errJoin != nil {
+		errLower := strings.ToLower(errJoin.Error())
+		if strings.Contains(errLower, "was already part of the network") {
+			return nil
+		}
 		return errorskit.Wrap(errJoin, "while bootstrapping")
 	}
-	return errJoin
+
+	return nil
 }
 
 func isNodePresentInServers(nodeID string, servers []raft.Server) bool {
@@ -185,6 +190,5 @@ func joinNodeToExistingConsensus(nodeID string) error {
 	if errSearchLeader != nil {
 		return errSearchLeader
 	}
-
 	return cluster.ConsensusJoin(nodeID, config.MakeConsensusAddr(nodeID), config.MakeGrpcAddress(leaderID))
 }
