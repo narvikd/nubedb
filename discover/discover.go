@@ -2,7 +2,6 @@ package discover
 
 import (
 	"errors"
-	"fmt"
 	"github.com/narvikd/errorskit"
 	"github.com/narvikd/mdns"
 	"log"
@@ -53,8 +52,8 @@ func getIP(nodeID string) (net.IP, error) {
 }
 
 // SearchNodes returns a list where currentNode is skipped
-func SearchNodes(currentNode string) (map[string]net.IP, error) {
-	hosts := make(map[string]net.IP)
+func SearchNodes(currentNode string) ([]string, error) {
+	hosts := make(map[string]bool)
 	var lastError error
 
 	for i := 0; i < 3; i++ {
@@ -65,28 +64,33 @@ func SearchNodes(currentNode string) (map[string]net.IP, error) {
 			continue
 		}
 
-		for h, ip := range hostsQuery {
+		for _, host := range hostsQuery {
 			// In some linux versions it reports "$name." (name and a dot)
-			hostSlice := strings.Split(h, ".")
-			host := hostSlice[0]
-			if host != currentNode {
-				hosts[host] = ip
-			}
+			host = strings.ReplaceAll(host, ".", "")
+			hosts[host] = true
 		}
 		time.Sleep(100 * time.Millisecond) // TODO: Try to refactor this
 	}
 
-	return hosts, lastError
+	result := make([]string, 0, len(hosts))
+	for host := range hosts {
+		if currentNode == host {
+			continue
+		}
+		result = append(result, host)
+	}
+
+	return result, lastError
 }
 
-func query() (map[string]net.IP, error) {
-	hosts := make(map[string]net.IP)
+func query() ([]string, error) {
+	var hosts []string
 	entriesCh := make(chan *mdns.ServiceEntry, 16)
 	go func() {
 		var mu sync.Mutex
 		for entry := range entriesCh {
 			mu.Lock()
-			hosts[entry.Host] = entry.AddrV4
+			hosts = append(hosts, entry.Host)
 			mu.Unlock()
 		}
 	}()
@@ -112,16 +116,14 @@ func SearchLeader(currentNode string) (string, error) {
 		return "", errNodes
 	}
 
-	fmt.Println("SEARCH LEADER NODES", nodes)
-
-	for host, _ := range nodes {
-		leader, err := cluster.IsLeader(config.MakeGrpcAddress(host))
+	for _, node := range nodes {
+		leader, err := cluster.IsLeader(config.MakeGrpcAddress(node))
 		if err != nil {
 			errorskit.LogWrap(err, "couldn't contact node while searching for leaders")
 			continue
 		}
 		if leader {
-			return host, nil
+			return node, nil
 		}
 	}
 
