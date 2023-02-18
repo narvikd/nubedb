@@ -1,7 +1,6 @@
 package consensus
 
 import (
-	"fmt"
 	"github.com/hashicorp/raft"
 	"github.com/narvikd/resolver"
 	"math"
@@ -63,7 +62,9 @@ func (n *Node) isQuorumPossible() (bool, error) {
 func (n *Node) getAliveNodes() (int, error) {
 	const timeout = 300 * time.Millisecond
 	counter := 0
-	for _, srv := range n.Consensus.GetConfiguration().Configuration().Servers {
+	liveCfg := n.Consensus.GetConfiguration().Configuration()
+	cfg := liveCfg.Clone() // Clone CFG to not keep calling it in the for, in case the num of servers is very large
+	for _, srv := range cfg.Servers {
 		srvID := string(srv.ID)
 		if n.ID == srvID {
 			continue
@@ -72,7 +73,6 @@ func (n *Node) getAliveNodes() (int, error) {
 			counter++
 		}
 	}
-	fmt.Println("COUNTER", counter)
 
 	totalNodes := counter - 1
 	return totalNodes, nil
