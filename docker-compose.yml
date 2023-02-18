@@ -5,36 +5,16 @@ networks:
     external: false
 
 services:
-  node1:
+  bootstrap-node:
     image: nubedb:latest
-    container_name: node1
-    hostname: node1
-    volumes:
-      - ./data:/app/data
-    environment:
-      - NODE=node1
+    hostname: bootstrap-node
     ports:
       - '3001:3001'
-    restart: always
-  node2:
-    image: nubedb:latest
-    container_name: node2
-    hostname: node2
     volumes:
       - ./data:/app/data
-    environment:
-      - NODE=node2
-    ports:
-      - '3002:3001'
-    restart: always
-  node3:
+  node:
     image: nubedb:latest
-    container_name: node3
-    hostname: node3
     volumes:
       - ./data:/app/data
-    environment:
-      - NODE=node3
-    ports:
-      - '3003:3001'
-    restart: always
+    deploy:
+      replicas: 24
