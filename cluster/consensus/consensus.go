@@ -21,15 +21,16 @@ import (
 )
 
 type Node struct {
-	Consensus       *raft.Raft
-	FSM             *fsm.DatabaseFSM
-	ID              string `json:"id" validate:"required"`
-	Address         string `json:"address"`
-	Dir             string
-	storageDir      string
-	snapshotsDir    string
-	consensusDB     string
-	consensusLogger hclog.Logger
+	Consensus         *raft.Raft
+	FSM               *fsm.DatabaseFSM
+	ID                string `json:"id" validate:"required"`
+	Address           string `json:"address"`
+	Dir               string
+	storageDir        string
+	snapshotsDir      string
+	consensusDB       string
+	consensusLogger   hclog.Logger
+	leaderChangesChan chan raft.Observation
 }
 
 func New(cfg config.Config) (*Node, error) {
@@ -125,7 +126,15 @@ func (n *Node) setRaft() error {
 	}
 	n.Consensus = r
 
-	return n.startConsensus(string(nodeID))
+	errStartConsensus := n.startConsensus(string(nodeID))
+	if errStartConsensus != nil {
+		return errStartConsensus
+	}
+
+	n.registerLeaderChangesChan()
+	n.logNewLeader()
+
+	return nil
 }
 
 func (n *Node) startConsensus(currentNodeID string) error {
@@ -181,4 +190,22 @@ func joinNodeToExistingConsensus(nodeID string) error {
 	}
 
 	return cluster.ConsensusJoin(nodeID, config.MakeConsensusAddr(nodeID), config.MakeGrpcAddress(leaderID))
+}
+
+func (n *Node) registerLeaderChangesChan() {
+	n.leaderChangesChan = make(chan raft.Observation)
+	observer := raft.NewObserver(n.leaderChangesChan, true, func(o *raft.Observation) bool {
+		_, ok := o.Data.(raft.LeaderObservation)
+		return ok
+	})
+	n.Consensus.RegisterObserver(observer)
+}
+
+func (n *Node) logNewLeader() {
+	go func() {
+		for obs := range n.leaderChangesChan {
+			leaderObs := obs.Data.(raft.LeaderObservation)
+			n.consensusLogger.Info("New Leader: " + string(leaderObs.LeaderID))
+		}
+	}()
 }
