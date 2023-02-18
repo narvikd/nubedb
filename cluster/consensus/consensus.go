@@ -1,7 +1,6 @@
 package consensus
 
 import (
-	"fmt"
 	"github.com/dgraph-io/badger/v3"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/raft"
@@ -139,19 +138,17 @@ func (n *Node) setRaft() error {
 }
 
 func (n *Node) startConsensus(currentNodeID string) error {
+	const bootstrappingLeader = "node1"
 	consensusCfg := n.Consensus.GetConfiguration().Configuration()
 	if len(consensusCfg.Servers) >= 2 {
 		return nil // Consensus already bootstrapped
 	}
 
-	var bootstrappingServers []raft.Server
-	for i := 1; i <= 3; i++ {
-		id := fmt.Sprintf("node%v", i)
-		srv := raft.Server{
-			ID:      raft.ServerID(id),
-			Address: raft.ServerAddress(config.MakeConsensusAddr(id)),
-		}
-		bootstrappingServers = append(bootstrappingServers, srv)
+	bootstrappingServers := []raft.Server{
+		{
+			ID:      raft.ServerID(bootstrappingLeader),
+			Address: raft.ServerAddress(config.MakeConsensusAddr(bootstrappingLeader)),
+		},
 	}
 
 	future := n.Consensus.BootstrapCluster(raft.Configuration{Servers: bootstrappingServers})
