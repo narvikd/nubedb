@@ -137,7 +137,7 @@ func (n *Node) setRaft() error {
 }
 
 func (n *Node) startConsensus(currentNodeID string) error {
-	const bootstrappingLeader = "node1"
+	const bootstrappingLeader = "bootstrap-node"
 	consensusCfg := n.Consensus.GetConfiguration().Configuration()
 	if len(consensusCfg.Servers) >= 2 {
 		return nil // Consensus already bootstrapped
