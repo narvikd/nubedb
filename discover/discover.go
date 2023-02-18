@@ -53,8 +53,8 @@ func getIP(nodeID string) (net.IP, error) {
 }
 
 // SearchNodes returns a list where currentNode is skipped
-func SearchNodes(currentNode string) ([]string, error) {
-	hosts := make(map[string]bool)
+func SearchNodes(currentNode string) (map[string]net.IP, error) {
+	hosts := make(map[string]net.IP)
 	var lastError error
 
 	for i := 0; i < 3; i++ {
@@ -65,34 +65,28 @@ func SearchNodes(currentNode string) ([]string, error) {
 			continue
 		}
 
-		for _, h := range hostsQuery {
+		for h, ip := range hostsQuery {
 			// In some linux versions it reports "$name." (name and a dot)
-			hs := strings.Split(h, ".")
-			host := hs[0]
-			hosts[host] = true
+			hostSlice := strings.Split(h, ".")
+			host := hostSlice[0]
+			if host != currentNode {
+				hosts[host] = ip
+			}
 		}
 		time.Sleep(100 * time.Millisecond) // TODO: Try to refactor this
 	}
 
-	result := make([]string, 0, len(hosts))
-	for host := range hosts {
-		if currentNode == host {
-			continue
-		}
-		result = append(result, host)
-	}
-
-	return result, lastError
+	return hosts, lastError
 }
 
-func query() ([]string, error) {
-	var hosts []string
+func query() (map[string]net.IP, error) {
+	hosts := make(map[string]net.IP)
 	entriesCh := make(chan *mdns.ServiceEntry, 16)
 	go func() {
 		var mu sync.Mutex
 		for entry := range entriesCh {
 			mu.Lock()
-			hosts = append(hosts, entry.Host)
+			hosts[entry.Host] = entry.AddrV4
 			mu.Unlock()
 		}
 	}()
@@ -120,14 +114,14 @@ func SearchLeader(currentNode string) (string, error) {
 
 	fmt.Println("SEARCH LEADER NODES", nodes)
 
-	for _, node := range nodes {
-		leader, err := cluster.IsLeader(config.MakeGrpcAddress(node))
+	for host, _ := range nodes {
+		leader, err := cluster.IsLeader(config.MakeGrpcAddress(host))
 		if err != nil {
 			errorskit.LogWrap(err, "couldn't contact node while searching for leaders")
 			continue
 		}
 		if leader {
-			return node, nil
+			return host, nil
 		}
 	}
 
