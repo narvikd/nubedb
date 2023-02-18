@@ -1,10 +1,12 @@
 package consensus
 
 import (
+	"fmt"
 	"github.com/hashicorp/raft"
+	"github.com/narvikd/resolver"
 	"math"
-	"nubedb/discover"
 	"strconv"
+	"time"
 )
 
 func (n *Node) IsHealthy() bool {
@@ -51,11 +53,27 @@ func (n *Node) IsHealthy() bool {
 func (n *Node) isQuorumPossible() (bool, error) {
 	peers, _ := strconv.Atoi(n.Consensus.Stats()["num_peers"]) // Safe to ignore this error
 	necessaryForQuorum := math.Ceil(float64(peers) / 2.0)
-	nodesSlice, err := discover.SearchNodes(n.ID)
+	totalNodes, err := n.getAliveNodes()
 	if err != nil {
 		return false, err
 	}
-
-	totalNodes := len(nodesSlice) - 1
 	return float64(totalNodes) >= necessaryForQuorum, nil
+}
+
+func (n *Node) getAliveNodes() (int, error) {
+	const timeout = 300 * time.Millisecond
+	counter := 0
+	for _, srv := range n.Consensus.GetConfiguration().Configuration().Servers {
+		srvID := string(srv.ID)
+		if n.ID == srvID {
+			continue
+		}
+		if resolver.IsHostAlive(srvID, timeout) {
+			counter++
+		}
+	}
+	fmt.Println("COUNTER", counter)
+
+	totalNodes := counter - 1
+	return totalNodes, nil
 }
