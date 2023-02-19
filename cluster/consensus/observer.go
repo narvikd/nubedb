@@ -20,8 +20,8 @@ func (n *Node) registerObservers() {
 }
 
 func (n *Node) registerNodeChangesChan() {
-	n.nodeChangesChan = make(chan raft.Observation, 4)
-	observer := raft.NewObserver(n.nodeChangesChan, false, func(o *raft.Observation) bool {
+	n.chans.nodeChanges = make(chan raft.Observation, 4)
+	observer := raft.NewObserver(n.chans.nodeChanges, false, func(o *raft.Observation) bool {
 		_, ok := o.Data.(raft.RaftState)
 		return ok
 	})
@@ -32,8 +32,8 @@ func (n *Node) registerNodeChangesChan() {
 }
 
 func (n *Node) registerLeaderChangesChan() {
-	n.leaderChangesChan = make(chan raft.Observation, 4)
-	observer := raft.NewObserver(n.leaderChangesChan, false, func(o *raft.Observation) bool {
+	n.chans.leaderChanges = make(chan raft.Observation, 4)
+	observer := raft.NewObserver(n.chans.leaderChanges, false, func(o *raft.Observation) bool {
 		_, ok := o.Data.(raft.LeaderObservation)
 		return ok
 	})
@@ -44,8 +44,8 @@ func (n *Node) registerLeaderChangesChan() {
 }
 
 func (n *Node) registerFailedHBChangesChan() {
-	n.failedHBChangesChan = make(chan raft.Observation, 4)
-	observer := raft.NewObserver(n.failedHBChangesChan, false, func(o *raft.Observation) bool {
+	n.chans.failedHBChanges = make(chan raft.Observation, 4)
+	observer := raft.NewObserver(n.chans.failedHBChanges, false, func(o *raft.Observation) bool {
 		_, ok := o.Data.(raft.FailedHeartbeatObservation)
 		return ok
 	})
@@ -56,8 +56,8 @@ func (n *Node) registerFailedHBChangesChan() {
 }
 
 func (n *Node) registerRequestVoteRequestChan() {
-	n.requestVoteRequestChan = make(chan raft.Observation, 4)
-	observer := raft.NewObserver(n.requestVoteRequestChan, false, func(o *raft.Observation) bool {
+	n.chans.requestVoteRequest = make(chan raft.Observation, 4)
+	observer := raft.NewObserver(n.chans.requestVoteRequest, false, func(o *raft.Observation) bool {
 		_, ok := o.Data.(raft.RequestVoteRequest)
 		return ok
 	})
@@ -69,7 +69,7 @@ func (n *Node) registerRequestVoteRequestChan() {
 
 func (n *Node) onRequestVoteRequest() {
 	go func() {
-		for o := range n.requestVoteRequestChan {
+		for o := range n.chans.requestVoteRequest {
 			data := o.Data.(raft.RequestVoteRequest)
 			idRequester := string(data.ID)
 			srvs := n.Consensus.GetConfiguration().Configuration().Servers
@@ -78,11 +78,11 @@ func (n *Node) onRequestVoteRequest() {
 					"Foreign node (%s) attempted to request a vote, but node is not in the configuration. Requesting foreign node's reinstall",
 					idRequester,
 				)
-				n.consensusLogger.Warn(msgWarn)
+				n.logger.Warn(msgWarn)
 				err := cluster.RequestNodeReinstall(config.MakeGrpcAddress(idRequester))
 				if err != nil {
 					msgErr := errorskit.Wrap(err, "couldn't reinstall foreign node")
-					n.consensusLogger.Error(msgErr.Error())
+					n.logger.Error(msgErr.Error())
 				}
 			}
 		}
@@ -91,21 +91,21 @@ func (n *Node) onRequestVoteRequest() {
 
 func (n *Node) onNodeChange() {
 	go func() {
-		for o := range n.nodeChangesChan {
-			n.consensusLogger.Info("Node Changed to role: " + o.Data.(raft.RaftState).String())
+		for o := range n.chans.nodeChanges {
+			n.logger.Info("Node Changed to role: " + o.Data.(raft.RaftState).String())
 		}
 	}()
 }
 
 func (n *Node) onNewLeader() {
 	go func() {
-		for o := range n.leaderChangesChan {
+		for o := range n.chans.leaderChanges {
 			obs := o.Data.(raft.LeaderObservation)
 			leaderID := string(obs.LeaderID)
 			if leaderID != "" {
-				n.consensusLogger.Info("New Leader: " + leaderID)
+				n.logger.Info("New Leader: " + leaderID)
 			} else {
-				n.consensusLogger.Info("No Leader available in the Cluster")
+				n.logger.Info("No Leader available in the Cluster")
 			}
 		}
 	}()
@@ -114,7 +114,7 @@ func (n *Node) onNewLeader() {
 func (n *Node) removeNodesOnHBStrategy() {
 	go func() {
 		const timeout = 20
-		for o := range n.failedHBChangesChan {
+		for o := range n.chans.failedHBChanges {
 			obs := o.Data.(raft.FailedHeartbeatObservation)
 			dur := time.Since(obs.LastContact)
 			duration := dur.Seconds()
@@ -124,9 +124,9 @@ func (n *Node) removeNodesOnHBStrategy() {
 					"REMOVING NODE '%v' from the Leader due to not having a connection for %v secs...",
 					obs.PeerID, duration,
 				)
-				n.consensusLogger.Warn(warnMsg)
+				n.logger.Warn(warnMsg)
 				n.Consensus.RemoveServer(obs.PeerID, 0, 0)
-				n.consensusLogger.Warn("NODE SUCCESSFULLY REMOVED FROM STATE CONSENSUS")
+				n.logger.Warn("NODE SUCCESSFULLY REMOVED FROM STATE CONSENSUS")
 			}
 
 		}
@@ -137,7 +137,7 @@ func (n *Node) ReinstallNode() {
 	go func() {
 		const errPanic = "COULDN'T GRACEFULLY REINSTALL NODE. "
 		if n.IsUnBlockingInProgress() {
-			n.consensusLogger.Warn("UNBLOCKING ALREADY IN PROGRESS")
+			n.logger.Warn("UNBLOCKING ALREADY IN PROGRESS")
 			return
 		}
 
@@ -162,7 +162,7 @@ func (n *Node) ReinstallNode() {
 			errorskit.FatalWrap(errConsensusRemove, errPanic+"couldn't remove from consensus")
 		}
 
-		errDeleteDirs := filekit.DeleteDirs(n.Dir)
+		errDeleteDirs := filekit.DeleteDirs(n.MainDir)
 		if errDeleteDirs != nil {
 			errorskit.FatalWrap(errDeleteDirs, errPanic+"couldn't delete dirs")
 		}
