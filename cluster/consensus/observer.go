@@ -137,7 +137,7 @@ func (n *Node) removeNodesOnHBStrategy() {
 
 // TODO: Maybe this will block because it isn't in a go routine?
 func (n *Node) checkIfNodeNeedsUnblock() {
-	const timeout = 20 * time.Second
+	const timeout = 60 * time.Second
 
 	_, leaderID := n.Consensus.LeaderWithID()
 	if leaderID != "" {
