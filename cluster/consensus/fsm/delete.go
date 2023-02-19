@@ -1,7 +1,7 @@
 package fsm
 
 import (
-	"github.com/narvikd/errorskit"
+	"nubedb/pkg/errorskit"
 )
 
 func (dbFSM DatabaseFSM) delete(k string) error {

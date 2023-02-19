@@ -2,10 +2,10 @@ package protoclient
 
 import (
 	"context"
-	"github.com/narvikd/errorskit"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"nubedb/api/proto"
+	"nubedb/pkg/errorskit"
 	"time"
 )
 

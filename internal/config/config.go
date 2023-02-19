@@ -2,7 +2,7 @@ package config
 
 import (
 	"fmt"
-	"github.com/narvikd/errorskit"
+	"nubedb/pkg/errorskit"
 	"nubedb/pkg/resolver"
 	"os"
 	"time"

@@ -2,9 +2,9 @@ package consensus
 
 import (
 	"github.com/hashicorp/raft"
-	"github.com/narvikd/errorskit"
 	"math"
 	"nubedb/cluster"
+	"nubedb/pkg/errorskit"
 	"strconv"
 )
 

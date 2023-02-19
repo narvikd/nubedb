@@ -2,12 +2,12 @@ package discover
 
 import (
 	"errors"
-	"github.com/narvikd/errorskit"
 	"github.com/narvikd/mdns"
 	"log"
 	"net"
 	"nubedb/cluster"
 	"nubedb/internal/config"
+	"nubedb/pkg/errorskit"
 	"strings"
 	"sync"
 	"time"

@@ -4,12 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/hashicorp/raft"
-	"github.com/narvikd/errorskit"
 	"log"
 	"nubedb/api/proto"
 	"nubedb/api/proto/protoclient"
 	"nubedb/cluster/consensus/fsm"
 	"nubedb/internal/config"
+	"nubedb/pkg/errorskit"
 	"nubedb/pkg/resolver"
 	"time"
 )

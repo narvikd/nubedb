@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"github.com/dgraph-io/badger/v3"
 	"github.com/hashicorp/raft"
-	"github.com/narvikd/errorskit"
 	"io"
+	"nubedb/pkg/errorskit"
 )
 
 type DatabaseFSM struct {

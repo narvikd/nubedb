@@ -3,7 +3,7 @@ package fsm
 import (
 	"encoding/json"
 	"errors"
-	"github.com/narvikd/errorskit"
+	"nubedb/pkg/errorskit"
 )
 
 func (dbFSM DatabaseFSM) set(k string, value any) error {

@@ -3,12 +3,12 @@ package consensus
 import (
 	"fmt"
 	"github.com/hashicorp/raft"
-	"github.com/narvikd/errorskit"
 	"github.com/narvikd/filekit"
 	"log"
 	"nubedb/cluster"
 	"nubedb/discover"
 	"nubedb/internal/config"
+	"nubedb/pkg/errorskit"
 	"time"
 )
 

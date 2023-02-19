@@ -8,7 +8,6 @@ require (
 	github.com/hashicorp/go-hclog v1.4.0
 	github.com/hashicorp/raft v1.3.11
 	github.com/hashicorp/raft-boltdb/v2 v2.2.2
-	github.com/narvikd/errorskit v1.0.0
 	github.com/narvikd/fiberparser v1.1.1
 	github.com/narvikd/filekit v1.0.1
 	github.com/narvikd/mdns v0.0.1
