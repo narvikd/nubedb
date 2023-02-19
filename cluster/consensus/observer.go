@@ -93,6 +93,7 @@ func (n *Node) onNodeChange() {
 	go func() {
 		for o := range n.chans.nodeChanges {
 			n.logger.Info("Node Changed to role: " + o.Data.(raft.RaftState).String())
+			n.checkIfNodeNeedsUnblock()
 		}
 	}()
 }
@@ -106,6 +107,7 @@ func (n *Node) onNewLeader() {
 				n.logger.Info("New Leader: " + leaderID)
 			} else {
 				n.logger.Info("No Leader available in the Cluster")
+				n.checkIfNodeNeedsUnblock()
 			}
 		}
 	}()
@@ -133,42 +135,59 @@ func (n *Node) removeNodesOnHBStrategy() {
 	}()
 }
 
+// TODO: Maybe this will block because it isn't in a go routine?
+func (n *Node) checkIfNodeNeedsUnblock() {
+	const timeout = 20 * time.Second
+
+	_, leaderID := n.Consensus.LeaderWithID()
+	if leaderID != "" {
+		return
+	}
+
+	time.Sleep(timeout)
+
+	_, leaderID = n.Consensus.LeaderWithID()
+	if leaderID != "" {
+		return
+	}
+
+	n.ReinstallNode()
+}
+
 func (n *Node) ReinstallNode() {
-	go func() {
-		const errPanic = "COULDN'T GRACEFULLY REINSTALL NODE. "
-		if n.IsUnBlockingInProgress() {
-			n.logger.Warn("UNBLOCKING ALREADY IN PROGRESS")
-			return
-		}
+	const errPanic = "COULDN'T GRACEFULLY REINSTALL NODE. "
+	if n.IsUnBlockingInProgress() {
+		n.logger.Warn("UNBLOCKING ALREADY IN PROGRESS")
+		return
+	}
 
-		log.Println("node got stuck for too long... Node reinstall in progress...")
+	log.Println("node got stuck for too long... Node reinstall in progress...")
 
-		n.SetUnBlockingInProgress(true)
-		defer n.SetUnBlockingInProgress(false)
+	n.SetUnBlockingInProgress(true)
+	defer n.SetUnBlockingInProgress(false)
 
-		future := n.Consensus.Shutdown()
-		if future.Error() != nil {
-			errorskit.FatalWrap(future.Error(), errPanic+"couldn't shut down")
-		}
+	future := n.Consensus.Shutdown()
+	if future.Error() != nil {
+		errorskit.FatalWrap(future.Error(), errPanic+"couldn't shut down")
+	}
 
-		leader, errSearchLeader := discover.SearchLeader(n.ID)
-		if errSearchLeader != nil {
-			errorskit.FatalWrap(errSearchLeader, errPanic+"couldn't search for leader")
-		}
-		leaderGrpcAddress := config.MakeGrpcAddress(leader)
+	leader, errSearchLeader := discover.SearchLeader(n.ID)
+	if errSearchLeader != nil {
+		errorskit.FatalWrap(errSearchLeader, errPanic+"couldn't search for leader")
+	}
+	leaderGrpcAddress := config.MakeGrpcAddress(leader)
 
-		errConsensusRemove := cluster.ConsensusRemove(n.ID, leaderGrpcAddress)
-		if errConsensusRemove != nil {
-			errorskit.FatalWrap(errConsensusRemove, errPanic+"couldn't remove from consensus")
-		}
+	errConsensusRemove := cluster.ConsensusRemove(n.ID, leaderGrpcAddress)
+	if errConsensusRemove != nil {
+		errorskit.FatalWrap(errConsensusRemove, errPanic+"couldn't remove from consensus")
+	}
 
-		errDeleteDirs := filekit.DeleteDirs(n.MainDir)
-		if errDeleteDirs != nil {
-			errorskit.FatalWrap(errDeleteDirs, errPanic+"couldn't delete dirs")
-		}
+	errDeleteDirs := filekit.DeleteDirs(n.MainDir)
+	if errDeleteDirs != nil {
+		errorskit.FatalWrap(errDeleteDirs, errPanic+"couldn't delete dirs")
+	}
 
-		log.Fatalln("Node successfully reset. Restarting...")
-	}()
+	log.Fatalln("Node successfully reset. Restarting...")
 }
 
 // TODO: Refactor
