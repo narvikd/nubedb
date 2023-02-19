@@ -67,11 +67,6 @@ func Start(a *app.App, port int) {
 func (l *LB) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	server := l.getNextNode()
 	proxy := httputil.NewSingleHostReverseProxy(server)
-	proxy.Director = func(req *http.Request) {
-		newServer := l.getNextNode()
-		req.URL.Scheme = newServer.Scheme
-		req.URL.Host = newServer.Host
-	}
 	proxy.ServeHTTP(w, r)
 }
 
