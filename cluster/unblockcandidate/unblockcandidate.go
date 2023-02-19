@@ -26,7 +26,7 @@ func Do(a *app.App) {
 					unblockCandidate(a)
 				}
 			}
-			time.Sleep(10 * time.Second)
+			time.Sleep(3 * time.Second)
 		}
 	}()
 }
@@ -35,6 +35,11 @@ func unblockCandidate(a *app.App) {
 	const errPanic = "COULDN'T GRACEFULLY UNBLOCK CANDIDATE. "
 
 	log.Println("node got stuck in candidate for too long... Node reinstall in progress...")
+
+	future := a.Node.Consensus.Shutdown()
+	if future.Error() != nil {
+		errorskit.FatalWrap(future.Error(), errPanic+"couldn't shut down")
+	}
 
 	leader, errSearchLeader := discover.SearchLeader(a.Node.ID)
 	if errSearchLeader != nil {
@@ -45,11 +50,6 @@ func unblockCandidate(a *app.App) {
 	errConsensusRemove := cluster.ConsensusRemove(a.Config.CurrentNode.ID, leaderGrpcAddress)
 	if errConsensusRemove != nil {
 		errorskit.FatalWrap(errConsensusRemove, errPanic+"couldn't remove from consensus")
-	}
-
-	future := a.Node.Consensus.Shutdown()
-	if future.Error() != nil {
-		errorskit.FatalWrap(future.Error(), errPanic+"couldn't shut down")
 	}
 
 	errDeleteDirs := filekit.DeleteDirs(a.Node.Dir)
