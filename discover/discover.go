@@ -87,10 +87,10 @@ func SearchNodes(currentNode string) ([]string, error) {
 }
 
 func query() ([]string, error) {
+	var mu sync.Mutex
 	var hosts []string
 	entriesCh := make(chan *mdns.ServiceEntry, 4)
 	go func() {
-		var mu sync.Mutex
 		for entry := range entriesCh {
 			mu.Lock()
 			hosts = append(hosts, entry.Host)
@@ -107,10 +107,14 @@ func query() ([]string, error) {
 	if err != nil {
 		return nil, errorskit.Wrap(err, "discover search")
 	}
+
+	mu.Lock()
+	defer mu.Unlock()
 	return hosts, nil
 }
 
-// SearchLeader will return an error if a leader is not found, since it skips the current node.
+// SearchLeader will return an error if a leader is not found,
+// since it skips the current node and this could be a leader.
 //
 // If the current node is as leader, it will still return an error
 func SearchLeader(currentNode string) (string, error) {
