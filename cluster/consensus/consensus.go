@@ -22,19 +22,20 @@ import (
 
 type Node struct {
 	sync.RWMutex
-	Consensus            *raft.Raft
-	FSM                  *fsm.DatabaseFSM
-	ID                   string `json:"id" validate:"required"`
-	Address              string `json:"address"`
-	Dir                  string
-	storageDir           string
-	snapshotsDir         string
-	consensusDB          string
-	consensusLogger      hclog.Logger
-	nodeChangesChan      chan raft.Observation
-	leaderChangesChan    chan raft.Observation
-	failedHBChangesChan  chan raft.Observation
-	unBlockingInProgress bool
+	Consensus              *raft.Raft
+	FSM                    *fsm.DatabaseFSM
+	ID                     string `json:"id" validate:"required"`
+	Address                string `json:"address"`
+	Dir                    string
+	storageDir             string
+	snapshotsDir           string
+	consensusDB            string
+	consensusLogger        hclog.Logger
+	nodeChangesChan        chan raft.Observation
+	leaderChangesChan      chan raft.Observation
+	failedHBChangesChan    chan raft.Observation
+	requestVoteRequestChan chan raft.Observation
+	unBlockingInProgress   bool
 }
 
 func (n *Node) IsUnBlockingInProgress() bool {
