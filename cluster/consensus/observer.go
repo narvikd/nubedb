@@ -131,6 +131,8 @@ func (n *Node) removeNodesOnHBStrategy() {
 				n.logger.Warn("NODE SUCCESSFULLY REMOVED FROM STATE CONSENSUS")
 			}
 
+			// TODO: Maybe timeout could be increased if there is a check for isHealthy or isQuorum possible
+
 		}
 	}()
 }
