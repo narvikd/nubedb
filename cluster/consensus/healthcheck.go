@@ -2,6 +2,7 @@ package consensus
 
 import (
 	"github.com/hashicorp/raft"
+	"github.com/narvikd/errorskit"
 	"math"
 	"nubedb/cluster"
 	"strconv"
@@ -36,7 +37,8 @@ func (n *Node) IsHealthy() bool {
 
 	isQuorumPossible, errQuorum := n.isQuorumPossible()
 	if errQuorum != nil {
-		n.consensusLogger.Error(genErr + "couldn't check if quorum was possible")
+		errWrap := errorskit.Wrap(errQuorum, genErr)
+		n.consensusLogger.Error(errWrap.Error())
 		return false
 	}
 

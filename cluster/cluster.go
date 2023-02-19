@@ -159,7 +159,7 @@ func GetAliveNodes(consensus *raft.Raft, currentNodeID string) ([]raft.Server, e
 		}
 	}
 
-	if len(alive) < 2 {
+	if len(alive) == 0 {
 		return nil, errors.New("no alive nodes")
 	}
 
