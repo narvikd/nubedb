@@ -73,7 +73,7 @@ func (n *Node) onRequestVoteRequest() {
 			data := o.Data.(raft.RequestVoteRequest)
 			idRequester := string(data.ID)
 			srvs := n.Consensus.GetConfiguration().Configuration().Servers
-			if len(srvs) > 0 && !inConfiguration(srvs, idRequester) {
+			if len(srvs) > 0 && !inNodeInConfiguration(srvs, idRequester) {
 				msgWarn := fmt.Sprintf(
 					"Foreign node (%s) attempted to request a vote, but node is not in the configuration. Requesting foreign node's reinstall",
 					idRequester,
@@ -171,7 +171,8 @@ func (n *Node) ReinstallNode() {
 	}()
 }
 
-func inConfiguration(servers []raft.Server, id string) bool {
+// TODO: Refactor
+func inNodeInConfiguration(servers []raft.Server, id string) bool {
 	for _, server := range servers {
 		if server.ID == raft.ServerID(id) {
 			return true
