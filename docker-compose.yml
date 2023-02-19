@@ -6,7 +6,7 @@ networks:
 
 services:
   bootstrap-node:
-    image: nubedb:latest
+    image: narvikd/nubedb:latest
     hostname: bootstrap-node
     ports:
       - '3001:3001'
@@ -14,7 +14,7 @@ services:
       - ./data:/app/data
     restart: on-failure
   node:
-    image: nubedb:latest
+    image: narvikd/nubedb:latest
     volumes:
       - ./data:/app/data
     depends_on:
