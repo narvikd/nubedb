@@ -16,6 +16,7 @@ func (n *Node) registerObservers() {
 	n.registerNodeChangesChan()
 	n.registerLeaderChangesChan()
 	n.registerFailedHBChangesChan()
+	n.registerRequestVoteRequestChan()
 }
 
 func (n *Node) registerNodeChangesChan() {
@@ -52,6 +53,40 @@ func (n *Node) registerFailedHBChangesChan() {
 
 	// Call methods
 	n.removeNodesOnHBStrategy()
+}
+
+func (n *Node) registerRequestVoteRequestChan() {
+	n.requestVoteRequestChan = make(chan raft.Observation, 4)
+	observer := raft.NewObserver(n.requestVoteRequestChan, false, func(o *raft.Observation) bool {
+		_, ok := o.Data.(raft.RequestVoteRequest)
+		return ok
+	})
+	n.Consensus.RegisterObserver(observer)
+
+	// Call methods
+	n.onRequestVoteRequest()
+}
+
+func (n *Node) onRequestVoteRequest() {
+	go func() {
+		for o := range n.requestVoteRequestChan {
+			data := o.Data.(raft.RequestVoteRequest)
+			idRequester := string(data.ID)
+			srvs := n.Consensus.GetConfiguration().Configuration().Servers
+			if len(srvs) > 0 && !inConfiguration(srvs, idRequester) {
+				msgWarn := fmt.Sprintf(
+					"Foreign node (%s) attempted to request a vote, but node is not in the configuration. Requesting foreign node's reinstall",
+					idRequester,
+				)
+				n.consensusLogger.Warn(msgWarn)
+				err := cluster.RequestNodeReinstall(config.MakeGrpcAddress(idRequester))
+				if err != nil {
+					msgErr := errorskit.Wrap(err, "couldn't reinstall foreign node")
+					n.consensusLogger.Error(msgErr.Error())
+				}
+			}
+		}
+	}()
 }
 
 func (n *Node) onNodeChange() {
@@ -103,10 +138,6 @@ func (n *Node) removeNodesOnHBStrategy() {
 func (n *Node) checkIfNodeNeedsUnblock() {
 	const timeout = 20 * time.Second
 
-	if n.IsUnBlockingInProgress() {
-		n.consensusLogger.Warn("UNBLOCKING ALREADY IN PROGRESS")
-	}
-
 	_, leaderID := n.Consensus.LeaderWithID()
 	if leaderID != "" {
 		return
@@ -119,11 +150,15 @@ func (n *Node) checkIfNodeNeedsUnblock() {
 		return
 	}
 
-	n.unblockNode()
+	n.ReinstallNode()
 }
 
-func (n *Node) unblockNode() {
-	const errPanic = "COULDN'T GRACEFULLY UNBLOCK NODE. "
+func (n *Node) ReinstallNode() {
+	const errPanic = "COULDN'T GRACEFULLY REINSTALL NODE. "
+	if n.IsUnBlockingInProgress() {
+		n.consensusLogger.Warn("UNBLOCKING ALREADY IN PROGRESS")
+		return
+	}
 
 	log.Println("node got stuck for too long... Node reinstall in progress...")
 
@@ -152,4 +187,13 @@ func (n *Node) unblockNode() {
 	}
 
 	log.Fatalln("Node successfully reset. Restarting...")
+}
+
+func inConfiguration(servers []raft.Server, id string) bool {
+	for _, server := range servers {
+		if server.ID == raft.ServerID(id) {
+			return true
+		}
+	}
+	return false
 }
