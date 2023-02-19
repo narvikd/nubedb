@@ -1,20 +1,18 @@
 package protoserver
 
 import (
-	"github.com/hashicorp/raft"
 	"google.golang.org/grpc"
 	"net"
 	"nubedb/api/proto"
-	"nubedb/cluster/consensus/fsm"
+	"nubedb/cluster/consensus"
 	"nubedb/internal/app"
 	"nubedb/internal/config"
 )
 
 type server struct {
 	proto.UnimplementedServiceServer
-	Config    config.Config
-	Consensus *raft.Raft
-	FSM       *fsm.DatabaseFSM
+	Config config.Config
+	Node   *consensus.Node
 }
 
 func Start(a *app.App) error {
@@ -24,9 +22,8 @@ func Start(a *app.App) error {
 	}
 
 	srvModel := &server{
-		Config:    a.Config,
-		Consensus: a.Node.Consensus,
-		FSM:       a.Node.FSM,
+		Config: a.Config,
+		Node:   a.Node,
 	}
 
 	protoServer := grpc.NewServer()
