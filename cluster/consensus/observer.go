@@ -3,6 +3,12 @@ package consensus
 import (
 	"fmt"
 	"github.com/hashicorp/raft"
+	"github.com/narvikd/errorskit"
+	"github.com/narvikd/filekit"
+	"log"
+	"nubedb/cluster"
+	"nubedb/discover"
+	"nubedb/internal/config"
 	"time"
 )
 
@@ -21,7 +27,7 @@ func (n *Node) registerNodeChangesChan() {
 	n.Consensus.RegisterObserver(observer)
 
 	// Call methods
-	n.logNewNodeChange()
+	n.onNodeChange()
 }
 
 func (n *Node) registerLeaderChangesChan() {
@@ -48,10 +54,21 @@ func (n *Node) registerFailedHBChangesChan() {
 	n.removeNodesOnHBStrategy()
 }
 
-func (n *Node) logNewNodeChange() {
+func (n *Node) onNodeChange() {
 	go func() {
 		for o := range n.nodeChangesChan {
 			n.consensusLogger.Info("Node Changed to role: " + o.Data.(raft.RaftState).String())
+			const timeout = 20 * time.Second
+			// If the node is stuck in a candidate position for 20 seconds, it's blocked.
+			// There's no scenario where the node is a candidate for more than 10 seconds,
+			// and it's not part of a bootstrapped service.
+			if n.Consensus.State() == raft.Candidate {
+				time.Sleep(timeout)
+				// If a minute has passed, and I'm still blocked, there's a real problem.
+				if n.Consensus.State() == raft.Candidate {
+					n.unblockCandidate()
+				}
+			}
 		}
 	}()
 }
@@ -90,4 +107,33 @@ func (n *Node) removeNodesOnHBStrategy() {
 
 		}
 	}()
+}
+
+func (n *Node) unblockCandidate() {
+	const errPanic = "COULDN'T GRACEFULLY UNBLOCK CANDIDATE. "
+
+	log.Println("node got stuck in candidate for too long... Node reinstall in progress...")
+
+	future := n.Consensus.Shutdown()
+	if future.Error() != nil {
+		errorskit.FatalWrap(future.Error(), errPanic+"couldn't shut down")
+	}
+
+	leader, errSearchLeader := discover.SearchLeader(n.ID)
+	if errSearchLeader != nil {
+		errorskit.FatalWrap(errSearchLeader, errPanic+"couldn't search for leader")
+	}
+	leaderGrpcAddress := config.MakeGrpcAddress(leader)
+
+	errConsensusRemove := cluster.ConsensusRemove(n.ID, leaderGrpcAddress)
+	if errConsensusRemove != nil {
+		errorskit.FatalWrap(errConsensusRemove, errPanic+"couldn't remove from consensus")
+	}
+
+	errDeleteDirs := filekit.DeleteDirs(n.Dir)
+	if errDeleteDirs != nil {
+		errorskit.FatalWrap(errDeleteDirs, errPanic+"couldn't delete dirs")
+	}
+
+	log.Fatalln("Node successfully reset. Restarting...")
 }
