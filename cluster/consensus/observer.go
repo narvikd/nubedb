@@ -134,39 +134,41 @@ func (n *Node) removeNodesOnHBStrategy() {
 }
 
 func (n *Node) ReinstallNode() {
-	const errPanic = "COULDN'T GRACEFULLY REINSTALL NODE. "
-	if n.IsUnBlockingInProgress() {
-		n.consensusLogger.Warn("UNBLOCKING ALREADY IN PROGRESS")
-		return
-	}
+	go func() {
+		const errPanic = "COULDN'T GRACEFULLY REINSTALL NODE. "
+		if n.IsUnBlockingInProgress() {
+			n.consensusLogger.Warn("UNBLOCKING ALREADY IN PROGRESS")
+			return
+		}
 
-	log.Println("node got stuck for too long... Node reinstall in progress...")
+		log.Println("node got stuck for too long... Node reinstall in progress...")
 
-	n.SetUnBlockingInProgress(true)
-	defer n.SetUnBlockingInProgress(false)
+		n.SetUnBlockingInProgress(true)
+		defer n.SetUnBlockingInProgress(false)
 
-	future := n.Consensus.Shutdown()
-	if future.Error() != nil {
-		errorskit.FatalWrap(future.Error(), errPanic+"couldn't shut down")
-	}
+		future := n.Consensus.Shutdown()
+		if future.Error() != nil {
+			errorskit.FatalWrap(future.Error(), errPanic+"couldn't shut down")
+		}
 
-	leader, errSearchLeader := discover.SearchLeader(n.ID)
-	if errSearchLeader != nil {
-		errorskit.FatalWrap(errSearchLeader, errPanic+"couldn't search for leader")
-	}
-	leaderGrpcAddress := config.MakeGrpcAddress(leader)
+		leader, errSearchLeader := discover.SearchLeader(n.ID)
+		if errSearchLeader != nil {
+			errorskit.FatalWrap(errSearchLeader, errPanic+"couldn't search for leader")
+		}
+		leaderGrpcAddress := config.MakeGrpcAddress(leader)
 
-	errConsensusRemove := cluster.ConsensusRemove(n.ID, leaderGrpcAddress)
-	if errConsensusRemove != nil {
-		errorskit.FatalWrap(errConsensusRemove, errPanic+"couldn't remove from consensus")
-	}
+		errConsensusRemove := cluster.ConsensusRemove(n.ID, leaderGrpcAddress)
+		if errConsensusRemove != nil {
+			errorskit.FatalWrap(errConsensusRemove, errPanic+"couldn't remove from consensus")
+		}
 
-	errDeleteDirs := filekit.DeleteDirs(n.Dir)
-	if errDeleteDirs != nil {
-		errorskit.FatalWrap(errDeleteDirs, errPanic+"couldn't delete dirs")
-	}
+		errDeleteDirs := filekit.DeleteDirs(n.Dir)
+		if errDeleteDirs != nil {
+			errorskit.FatalWrap(errDeleteDirs, errPanic+"couldn't delete dirs")
+		}
 
-	log.Fatalln("Node successfully reset. Restarting...")
+		log.Fatalln("Node successfully reset. Restarting...")
+	}()
 }
 
 func inConfiguration(servers []raft.Server, id string) bool {
