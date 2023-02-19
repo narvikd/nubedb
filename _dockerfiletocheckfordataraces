@@ -1,0 +1,22 @@
+FROM alpine:latest
+ENV NODE ""
+WORKDIR /app
+RUN apk update && apk add --no-cache tzdata
+RUN cp /usr/share/zoneinfo/Europe/Berlin /etc/localtime
+RUN echo "Europe/Berlin" >  /etc/timezone
+COPY . .
+RUN mkdir /app/data
+RUN touch /app/data/.keep
+
+RUN apk add --no-cache git make musl-dev go
+
+# Configure Go
+ENV GOROOT /usr/lib/go
+ENV GOPATH /go
+ENV PATH /go/bin:$PATH
+
+RUN mkdir -p ${GOPATH}/src ${GOPATH}/bin
+
+RUN go build -race
+
+ENTRYPOINT ["/app/nubedb"]

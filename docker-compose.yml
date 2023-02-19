@@ -17,6 +17,8 @@ services:
     image: nubedb:latest
     volumes:
       - ./data:/app/data
+    depends_on:
+      - bootstrap-node
     restart: on-failure
     deploy:
       replicas: 24
