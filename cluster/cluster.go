@@ -10,6 +10,7 @@ import (
 	"nubedb/api/proto/protoclient"
 	"nubedb/cluster/consensus/fsm"
 	"nubedb/internal/config"
+	"nubedb/pkg/resolver"
 	"time"
 )
 
@@ -140,4 +141,27 @@ func ConsensusRemove(nodeID string, leaderGrpcAddr string) error {
 	}
 
 	return nil
+}
+
+func GetAliveNodes(consensus *raft.Raft, currentNodeID string) ([]raft.Server, error) {
+	const timeout = 300 * time.Millisecond
+	var alive []raft.Server
+
+	liveCfg := consensus.GetConfiguration().Configuration()
+	cfg := liveCfg.Clone() // Clone CFG to not keep calling it in the for, in case the num of servers is very large
+	for _, srv := range cfg.Servers {
+		srvID := string(srv.ID)
+		if currentNodeID == srvID {
+			continue
+		}
+		if resolver.IsHostAlive(srvID, timeout) {
+			alive = append(alive, srv)
+		}
+	}
+
+	if len(alive) < 2 {
+		return nil, errors.New("no alive nodes")
+	}
+
+	return alive, nil
 }

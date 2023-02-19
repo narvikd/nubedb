@@ -3,9 +3,8 @@ package consensus
 import (
 	"github.com/hashicorp/raft"
 	"math"
-	"nubedb/pkg/resolver"
+	"nubedb/cluster"
 	"strconv"
-	"time"
 )
 
 func (n *Node) IsHealthy() bool {
@@ -52,28 +51,17 @@ func (n *Node) IsHealthy() bool {
 func (n *Node) isQuorumPossible() (bool, error) {
 	peers, _ := strconv.Atoi(n.Consensus.Stats()["num_peers"]) // Safe to ignore this error
 	necessaryForQuorum := math.Ceil(float64(peers) / 2.0)
-	totalNodes, err := n.getAliveNodes()
+	totalNodes, err := n.getNumAliveNodes()
 	if err != nil {
 		return false, err
 	}
 	return float64(totalNodes) >= necessaryForQuorum, nil
 }
 
-func (n *Node) getAliveNodes() (int, error) {
-	const timeout = 300 * time.Millisecond
-	counter := 0
-	liveCfg := n.Consensus.GetConfiguration().Configuration()
-	cfg := liveCfg.Clone() // Clone CFG to not keep calling it in the for, in case the num of servers is very large
-	for _, srv := range cfg.Servers {
-		srvID := string(srv.ID)
-		if n.ID == srvID {
-			continue
-		}
-		if resolver.IsHostAlive(srvID, timeout) {
-			counter++
-		}
+func (n *Node) getNumAliveNodes() (int, error) {
+	nodes, err := cluster.GetAliveNodes(n.Consensus, n.ID)
+	if err != nil {
+		return 0, err
 	}
-
-	totalNodes := counter - 1
-	return totalNodes, nil
+	return len(nodes), nil
 }
