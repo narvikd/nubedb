@@ -93,7 +93,6 @@ func (n *Node) onNodeChange() {
 	go func() {
 		for o := range n.nodeChangesChan {
 			n.consensusLogger.Info("Node Changed to role: " + o.Data.(raft.RaftState).String())
-			n.checkIfNodeNeedsUnblock()
 		}
 	}()
 }
@@ -107,7 +106,6 @@ func (n *Node) onNewLeader() {
 				n.consensusLogger.Info("New Leader: " + leaderID)
 			} else {
 				n.consensusLogger.Info("No Leader available in the Cluster")
-				n.checkIfNodeNeedsUnblock()
 			}
 		}
 	}()
@@ -133,24 +131,6 @@ func (n *Node) removeNodesOnHBStrategy() {
 
 		}
 	}()
-}
-
-func (n *Node) checkIfNodeNeedsUnblock() {
-	const timeout = 20 * time.Second
-
-	_, leaderID := n.Consensus.LeaderWithID()
-	if leaderID != "" {
-		return
-	}
-
-	time.Sleep(timeout)
-
-	_, leaderID = n.Consensus.LeaderWithID()
-	if leaderID != "" {
-		return
-	}
-
-	n.ReinstallNode()
 }
 
 func (n *Node) ReinstallNode() {
