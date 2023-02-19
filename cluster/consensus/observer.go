@@ -19,8 +19,8 @@ func (n *Node) registerObservers() {
 }
 
 func (n *Node) registerNodeChangesChan() {
-	n.nodeChangesChan = make(chan raft.Observation)
-	observer := raft.NewObserver(n.nodeChangesChan, true, func(o *raft.Observation) bool {
+	n.nodeChangesChan = make(chan raft.Observation, 4)
+	observer := raft.NewObserver(n.nodeChangesChan, false, func(o *raft.Observation) bool {
 		_, ok := o.Data.(raft.RaftState)
 		return ok
 	})
@@ -31,20 +31,20 @@ func (n *Node) registerNodeChangesChan() {
 }
 
 func (n *Node) registerLeaderChangesChan() {
-	n.leaderChangesChan = make(chan raft.Observation)
-	observer := raft.NewObserver(n.leaderChangesChan, true, func(o *raft.Observation) bool {
+	n.leaderChangesChan = make(chan raft.Observation, 4)
+	observer := raft.NewObserver(n.leaderChangesChan, false, func(o *raft.Observation) bool {
 		_, ok := o.Data.(raft.LeaderObservation)
 		return ok
 	})
 	n.Consensus.RegisterObserver(observer)
 
 	// Call methods
-	n.logNewLeader()
+	n.onNewLeader()
 }
 
 func (n *Node) registerFailedHBChangesChan() {
-	n.failedHBChangesChan = make(chan raft.Observation)
-	observer := raft.NewObserver(n.failedHBChangesChan, true, func(o *raft.Observation) bool {
+	n.failedHBChangesChan = make(chan raft.Observation, 4)
+	observer := raft.NewObserver(n.failedHBChangesChan, false, func(o *raft.Observation) bool {
 		_, ok := o.Data.(raft.FailedHeartbeatObservation)
 		return ok
 	})
@@ -58,22 +58,12 @@ func (n *Node) onNodeChange() {
 	go func() {
 		for o := range n.nodeChangesChan {
 			n.consensusLogger.Info("Node Changed to role: " + o.Data.(raft.RaftState).String())
-			const timeout = 20 * time.Second
-			// If the node is stuck in a candidate position for 20 seconds, it's blocked.
-			// There's no scenario where the node is a candidate for more than 10 seconds,
-			// and it's not part of a bootstrapped service.
-			if n.Consensus.State() == raft.Candidate {
-				time.Sleep(timeout)
-				// If a minute has passed, and I'm still blocked, there's a real problem.
-				if n.Consensus.State() == raft.Candidate {
-					n.unblockCandidate()
-				}
-			}
+			n.checkIfNodeNeedsUnblock()
 		}
 	}()
 }
 
-func (n *Node) logNewLeader() {
+func (n *Node) onNewLeader() {
 	go func() {
 		for o := range n.leaderChangesChan {
 			obs := o.Data.(raft.LeaderObservation)
@@ -82,6 +72,7 @@ func (n *Node) logNewLeader() {
 				n.consensusLogger.Info("New Leader: " + leaderID)
 			} else {
 				n.consensusLogger.Info("No Leader available in the Cluster")
+				n.checkIfNodeNeedsUnblock()
 			}
 		}
 	}()
@@ -89,16 +80,16 @@ func (n *Node) logNewLeader() {
 
 func (n *Node) removeNodesOnHBStrategy() {
 	go func() {
-		const timeout = 1.0
+		const timeout = 20
 		for o := range n.failedHBChangesChan {
 			obs := o.Data.(raft.FailedHeartbeatObservation)
-			duration := time.Since(obs.LastContact)
-			durationMins := duration.Minutes()
+			dur := time.Since(obs.LastContact)
+			duration := dur.Seconds()
 
-			if durationMins >= timeout {
+			if duration >= timeout {
 				warnMsg := fmt.Sprintf(
-					"REMOVING NODE '%v' from the Leader due to not having a connection for %v minutes...",
-					obs.PeerID, durationMins,
+					"REMOVING NODE '%v' from the Leader due to not having a connection for %v secs...",
+					obs.PeerID, duration,
 				)
 				n.consensusLogger.Warn(warnMsg)
 				n.Consensus.RemoveServer(obs.PeerID, 0, 0)
@@ -109,10 +100,35 @@ func (n *Node) removeNodesOnHBStrategy() {
 	}()
 }
 
-func (n *Node) unblockCandidate() {
-	const errPanic = "COULDN'T GRACEFULLY UNBLOCK CANDIDATE. "
+func (n *Node) checkIfNodeNeedsUnblock() {
+	const timeout = 20 * time.Second
 
-	log.Println("node got stuck in candidate for too long... Node reinstall in progress...")
+	if n.IsUnBlockingInProgress() {
+		n.consensusLogger.Warn("UNBLOCKING ALREADY IN PROGRESS")
+	}
+
+	_, leaderID := n.Consensus.LeaderWithID()
+	if leaderID != "" {
+		return
+	}
+
+	time.Sleep(timeout)
+
+	_, leaderID = n.Consensus.LeaderWithID()
+	if leaderID != "" {
+		return
+	}
+
+	n.unblockNode()
+}
+
+func (n *Node) unblockNode() {
+	const errPanic = "COULDN'T GRACEFULLY UNBLOCK NODE. "
+
+	log.Println("node got stuck for too long... Node reinstall in progress...")
+
+	n.SetUnBlockingInProgress(true)
+	defer n.SetUnBlockingInProgress(false)
 
 	future := n.Consensus.Shutdown()
 	if future.Error() != nil {
