@@ -32,13 +32,11 @@ func ServeAndBlock(nodeID string, port int) {
 		errorskit.FatalWrap(errService, errGen+"discover service")
 	}
 
-	// Create the mDNS server, defer shutdown
 	server, errServer := mdns.NewServer(&mdns.Config{Zone: service})
 	if errServer != nil {
 		errorskit.FatalWrap(errService, errGen+"discover server")
 	}
 
-	// TODO: This maybe never shutdowns correctly
 	defer func(server *mdns.Server) {
 		_ = server.Shutdown()
 	}(server)
