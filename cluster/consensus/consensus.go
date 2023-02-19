@@ -181,8 +181,8 @@ func (n *Node) startConsensus(currentNodeID string) error {
 		}
 	}
 
-	// The consensus is going to try to bootstrap. If it gives an error it's because it's already bootstrapped, or
-	// We're not a part of it: "not a voter".
+	// The consensus is going to try to bootstrap.
+	// If it gives an error it's because it's already bootstrapped, or this node is not a part of it: "not a voter".
 	// Any errors that aren't "not a voter", can safely be ignored as described in raft's docs.
 	// not a voter shouldn't be ignored just because we need to join the existing consensus.
 	future := n.Consensus.BootstrapCluster(raft.Configuration{Servers: bootstrappingServers})
@@ -190,6 +190,10 @@ func (n *Node) startConsensus(currentNodeID string) error {
 		if !strings.Contains(future.Error().Error(), "not a voter") {
 			return nil
 		}
+	}
+	// Consensus not bootstrapped but there isn't any voter error (this means this node is 'bootstrappingLeader')
+	if future.Error() == nil {
+		return nil
 	}
 
 	errJoin := joinNodeToExistingConsensus(currentNodeID)
