@@ -13,7 +13,10 @@ import (
 	"time"
 )
 
-const serviceName = "_nubedb._tcp"
+const (
+	serviceName       = "_nubedb._tcp"
+	ErrLeaderNotFound = "couldn't find a leader"
+)
 
 func ServeAndBlock(nodeID string, port int) {
 	const errGen = "Discover serve and block: "
@@ -127,5 +130,5 @@ func SearchLeader(currentNode string) (string, error) {
 		}
 	}
 
-	return "", errors.New("couldn't find a leader")
+	return "", errors.New(ErrLeaderNotFound)
 }

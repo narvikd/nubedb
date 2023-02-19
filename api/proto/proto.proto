@@ -19,6 +19,7 @@ message ConsensusRequest {
 
 service Service {
   rpc ExecuteOnLeader(ExecuteOnLeaderRequest) returns (Empty);
+  rpc ReinstallNode(Empty) returns (Empty);
   rpc IsLeader(Empty) returns (IsLeaderResponse);
   rpc ConsensusJoin(ConsensusRequest) returns (Empty);
   rpc ConsensusRemove(ConsensusRequest) returns (Empty);

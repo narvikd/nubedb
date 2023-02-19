@@ -9,7 +9,7 @@ services:
     image: nubedb:latest
     hostname: bootstrap-node
     ports:
-      - '3001:8000'
+      - '3001:3001'
     volumes:
       - ./data:/app/data
     restart: on-failure

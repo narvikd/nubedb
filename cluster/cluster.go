@@ -165,3 +165,14 @@ func GetAliveNodes(consensus *raft.Raft, currentNodeID string) ([]raft.Server, e
 
 	return alive, nil
 }
+
+func RequestNodeReinstall(nodeGrpcAddr string) error {
+	conn, errConn := protoclient.NewConnection(nodeGrpcAddr)
+	if errConn != nil {
+		return errConn
+	}
+	defer conn.Cleanup()
+
+	_, _ = conn.Client.ReinstallNode(conn.Ctx, &proto.Empty{}) // Ignore the error
+	return nil
+}

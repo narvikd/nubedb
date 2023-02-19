@@ -16,22 +16,38 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 )
 
 type Node struct {
-	Consensus           *raft.Raft
-	FSM                 *fsm.DatabaseFSM
-	ID                  string `json:"id" validate:"required"`
-	Address             string `json:"address"`
-	Dir                 string
-	storageDir          string
-	snapshotsDir        string
-	consensusDB         string
-	consensusLogger     hclog.Logger
-	nodeChangesChan     chan raft.Observation
-	leaderChangesChan   chan raft.Observation
-	failedHBChangesChan chan raft.Observation
+	sync.RWMutex
+	Consensus              *raft.Raft
+	FSM                    *fsm.DatabaseFSM
+	ID                     string `json:"id" validate:"required"`
+	Address                string `json:"address"`
+	Dir                    string
+	storageDir             string
+	snapshotsDir           string
+	consensusDB            string
+	consensusLogger        hclog.Logger
+	nodeChangesChan        chan raft.Observation
+	leaderChangesChan      chan raft.Observation
+	failedHBChangesChan    chan raft.Observation
+	requestVoteRequestChan chan raft.Observation
+	unBlockingInProgress   bool
+}
+
+func (n *Node) IsUnBlockingInProgress() bool {
+	n.RLock()
+	defer n.RUnlock()
+	return n.unBlockingInProgress
+}
+
+func (n *Node) SetUnBlockingInProgress(b bool) {
+	n.Lock()
+	defer n.Unlock()
+	n.unBlockingInProgress = b
 }
 
 func New(cfg config.Config) (*Node, error) {
@@ -150,20 +166,27 @@ func (n *Node) startConsensus(currentNodeID string) error {
 		},
 	}
 
+	leaderID, errSearchLeader := discover.SearchLeader(currentNodeID)
+	if errSearchLeader == nil {
+		bootstrappingServers = []raft.Server{
+			{
+				ID:      raft.ServerID(leaderID),
+				Address: raft.ServerAddress(config.MakeConsensusAddr(leaderID)),
+			},
+		}
+	}
+
+	// The consensus is going to try to bootstrap. If it gives an error it's because it's already bootstrapped, or
+	// We're not a part of it: "not a voter".
+	// Any errors that aren't "not a voter", can safely be ignored as described in raft's docs.
+	// not a voter shouldn't be ignored just because we need to join the existing consensus.
 	future := n.Consensus.BootstrapCluster(raft.Configuration{Servers: bootstrappingServers})
 	if future.Error() != nil {
-		// It is safe to ignore any errors here, as described in docs.
-		// But not a voter shouldn't be ignored in order to join it to the existing consensus
 		if !strings.Contains(future.Error().Error(), "not a voter") {
 			return nil
 		}
 	}
-	if future.Error() == nil && isNodePresentInServers(currentNodeID, bootstrappingServers) {
-		return nil // Consensus not bootstrapped, but node is a part of it, so it will bootstrap without any intervention.
-	}
 
-	// At this point, the consensus wasn't bootstrapped before.
-	// A bootstrap config was created where this node isn't part of it.
 	errJoin := joinNodeToExistingConsensus(currentNodeID)
 	if errJoin != nil {
 		errLower := strings.ToLower(errJoin.Error())
@@ -174,15 +197,6 @@ func (n *Node) startConsensus(currentNodeID string) error {
 	}
 
 	return nil
-}
-
-func isNodePresentInServers(nodeID string, servers []raft.Server) bool {
-	for _, server := range servers {
-		if nodeID == string(server.ID) {
-			return true
-		}
-	}
-	return false
 }
 
 func joinNodeToExistingConsensus(nodeID string) error {

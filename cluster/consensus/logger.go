@@ -10,7 +10,7 @@ import (
 
 // newConsensusFilterWriter returns a filter-writer which suppresses raft's errors that had been debug errors instead
 func newConsensusFilterWriter() *filterwriter.Writer {
-	const errCannotSnapshotNow = "cannot restore snapshot now, wait until the configuration entry at"
+	const errCannotSnapshotNow = "snapshot now, wait until the configuration entry at"
 	filters := []string{raft.ErrNothingNewToSnapshot.Error(), errCannotSnapshotNow}
 	return filterwriter.New(os.Stderr, filters)
 }
