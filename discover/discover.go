@@ -85,7 +85,7 @@ func SearchNodes(currentNode string) ([]string, error) {
 
 func query() ([]string, error) {
 	var hosts []string
-	entriesCh := make(chan *mdns.ServiceEntry, 16)
+	entriesCh := make(chan *mdns.ServiceEntry, 4)
 	go func() {
 		var mu sync.Mutex
 		for entry := range entriesCh {
