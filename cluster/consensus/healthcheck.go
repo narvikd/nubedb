@@ -15,35 +15,35 @@ func (n *Node) IsHealthy() bool {
 	stats := n.Consensus.Stats()
 
 	if len(consensusServers) <= 1 {
-		n.consensusLogger.Warn(genErr + "only one server in configuration")
+		n.logger.Warn(genErr + "only one server in configuration")
 		return false
 	}
 
 	if n.Consensus.State() != raft.Leader && stats["last_contact"] == "never" {
-		n.consensusLogger.Warn(genErr + "only one server in configuration")
+		n.logger.Warn(genErr + "only one server in configuration")
 		return false
 	}
 
 	leaderAddr, leaderID := n.Consensus.LeaderWithID()
 	if leaderAddr == "" {
-		n.consensusLogger.Warn(genErr + "local consensus reports that leader address is empty")
+		n.logger.Warn(genErr + "local consensus reports that leader address is empty")
 		return false
 	}
 
 	if leaderID == "" {
-		n.consensusLogger.Warn(genErr + "local consensus reports that leader id is empty")
+		n.logger.Warn(genErr + "local consensus reports that leader id is empty")
 		return false
 	}
 
 	isQuorumPossible, errQuorum := n.isQuorumPossible()
 	if errQuorum != nil {
 		errWrap := errorskit.Wrap(errQuorum, genErr)
-		n.consensusLogger.Error(errWrap.Error())
+		n.logger.Error(errWrap.Error())
 		return false
 	}
 
 	if !isQuorumPossible {
-		n.consensusLogger.Warn(genErr + "quorum is not possible due to lack of available nodes")
+		n.logger.Warn(genErr + "quorum is not possible due to lack of available nodes")
 		return false
 	}
 

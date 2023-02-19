@@ -24,12 +24,12 @@ func (n *Node) setConsensusLogger(cfg *raft.Config) {
 		Output: fw,
 	})
 
-	n.consensusLogger = l
+	n.logger = l
 
 	cfg.LogOutput = fw
 	cfg.Logger = l
 }
 
 func (n *Node) LogWrapErr(err error, message string) {
-	n.consensusLogger.Error(fmt.Errorf("%s: %w", message, err).Error())
+	n.logger.Error(fmt.Errorf("%s: %w", message, err).Error())
 }

@@ -22,20 +22,24 @@ import (
 
 type Node struct {
 	sync.RWMutex
-	Consensus              *raft.Raft
-	FSM                    *fsm.DatabaseFSM
-	ID                     string `json:"id" validate:"required"`
-	Address                string `json:"address"`
-	Dir                    string
-	storageDir             string
-	snapshotsDir           string
-	consensusDB            string
-	consensusLogger        hclog.Logger
-	nodeChangesChan        chan raft.Observation
-	leaderChangesChan      chan raft.Observation
-	failedHBChangesChan    chan raft.Observation
-	requestVoteRequestChan chan raft.Observation
-	unBlockingInProgress   bool
+	Consensus            *raft.Raft
+	FSM                  *fsm.DatabaseFSM
+	ID                   string `json:"id" validate:"required"`
+	ConsensusAddress     string `json:"address"`
+	MainDir              string
+	storageDir           string
+	snapshotsDir         string
+	consensusDBPath      string
+	logger               hclog.Logger
+	chans                *Chans
+	unBlockingInProgress bool
+}
+
+type Chans struct {
+	nodeChanges        chan raft.Observation
+	leaderChanges      chan raft.Observation
+	failedHBChanges    chan raft.Observation
+	requestVoteRequest chan raft.Observation
 }
 
 func (n *Node) IsUnBlockingInProgress() bool {
@@ -74,16 +78,17 @@ func newNode(id string, address string) (*Node, error) {
 	}
 
 	n := &Node{
-		FSM:          f,
-		ID:           id,
-		Address:      address,
-		Dir:          dir,
-		storageDir:   storageDir,
-		snapshotsDir: dir, // This isn't a typo, it will create a snapshots dir inside the dir automatically
-		consensusDB:  filepath.Join(dir, "consensus.db"),
+		FSM:              f,
+		ID:               id,
+		ConsensusAddress: address,
+		MainDir:          dir,
+		storageDir:       storageDir,
+		snapshotsDir:     dir, // This isn't a typo, it will create a snapshots dir inside the dir automatically
+		consensusDBPath:  filepath.Join(dir, "consensus.db"),
+		chans:            new(Chans),
 	}
 
-	errDir := filekit.CreateDirs(n.Dir, false)
+	errDir := filekit.CreateDirs(n.MainDir, false)
 	if errDir != nil {
 		return nil, errDir
 	}
@@ -110,17 +115,17 @@ func (n *Node) setRaft() error {
 		snapshotThreshold = 2
 	)
 
-	tcpAddr, errAddr := net.ResolveTCPAddr("tcp", n.Address)
+	tcpAddr, errAddr := net.ResolveTCPAddr("tcp", n.ConsensusAddress)
 	if errAddr != nil {
 		return errorskit.Wrap(errAddr, "couldn't resolve addr")
 	}
 
-	transport, errTransport := raft.NewTCPTransport(n.Address, tcpAddr, maxConnectionsPool, timeout, os.Stderr)
+	transport, errTransport := raft.NewTCPTransport(n.ConsensusAddress, tcpAddr, maxConnectionsPool, timeout, os.Stderr)
 	if errTransport != nil {
 		return errorskit.Wrap(errTransport, "couldn't create transport")
 	}
 
-	dbStore, errRaftStore := raftboltdb.NewBoltStore(n.consensusDB)
+	dbStore, errRaftStore := raftboltdb.NewBoltStore(n.consensusDBPath)
 	if errRaftStore != nil {
 		return errorskit.Wrap(errRaftStore, "couldn't create consensus db")
 	}
