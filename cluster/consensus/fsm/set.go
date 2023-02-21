@@ -6,6 +6,7 @@ import (
 	"github.com/narvikd/errorskit"
 )
 
+// set is a DatabaseFSM's method which adds a key-value pair to the database.
 func (dbFSM DatabaseFSM) set(k string, value any) error {
 	dbValue, errMarshal := json.Marshal(value)
 	if errMarshal != nil {

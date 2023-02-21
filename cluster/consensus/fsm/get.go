@@ -6,6 +6,9 @@ import (
 	"github.com/narvikd/errorskit"
 )
 
+// Get is a DatabaseFSM's method which gets a value from a key from the LOCAL NODE.
+//
+// This method isn't committed since there's no need for it.
 func (dbFSM DatabaseFSM) Get(k string) (any, error) {
 	var result any
 	dbResultValue := make([]byte, 0)
