@@ -27,7 +27,7 @@ func Execute(consensus *raft.Raft, payload *fsm.Payload) error {
 	}
 
 	if consensus.State() != raft.Leader {
-		return handleForwardLeaderFuture(consensus, payload)
+		return forwardLeaderFuture(consensus, payload)
 	}
 
 	return ApplyLeaderFuture(consensus, payloadData)
@@ -53,17 +53,9 @@ func ApplyLeaderFuture(consensus *raft.Raft, payloadData []byte) error {
 	return nil
 }
 
-func handleForwardLeaderFuture(consensus *raft.Raft, payload *fsm.Payload) error {
+func forwardLeaderFuture(consensus *raft.Raft, payload *fsm.Payload) error {
 	_, leaderID := consensus.LeaderWithID()
-	err := forwardLeaderFuture(string(leaderID), payload)
-	if err != nil {
-		return errorskit.Wrap(err, errDBCluster+" At handling forward")
-	}
-	return nil
-}
-
-func forwardLeaderFuture(leaderID string, payload *fsm.Payload) error {
-	leaderGrpcAddr := config.MakeGrpcAddress(leaderID)
+	leaderGrpcAddr := config.MakeGrpcAddress(string(leaderID))
 	log.Printf("[proto] payload for leader received in this node, forwarding to leader '%s' @ '%s'\n",
 		leaderID, leaderGrpcAddr,
 	)
