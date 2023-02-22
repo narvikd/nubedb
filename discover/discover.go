@@ -96,7 +96,7 @@ func SearchNodes(currentNode string) ([]string, error) {
 	return result, lastError
 }
 
-// query sends an mDNS query to discover nubedb nodes and returns a list of their IP addresses.
+// query sends an mDNS query to discover nubedb nodes and returns a list of their hosts.
 func query() ([]string, error) {
 	var mu sync.Mutex
 	var hosts []string
