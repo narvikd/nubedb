@@ -1,5 +1,4 @@
 FROM alpine:latest
-ENV NODE ""
 WORKDIR /app
 RUN apk update && apk add --no-cache tzdata
 RUN cp /usr/share/zoneinfo/Europe/Berlin /etc/localtime
