@@ -40,7 +40,7 @@ func registerNewObserver[T any](consensus *raft.Raft, channel chan raft.Observat
 // registerNodeChangesChan registers the node changes observer channel.
 func (n *Node) registerNodeChangesChan() {
 	n.chans.nodeChanges = make(chan raft.Observation, 4)
-	// Create and register an observer that filters for raft state observations and sends them to the channel.
+	// Creates and register an observer that filters for raft state observations and sends them to the channel.
 	registerNewObserver[raft.RaftState](n.Consensus, n.chans.nodeChanges)
 	// Creates a goroutine to receive and handle the node changes observations.
 	go func() {
@@ -192,7 +192,6 @@ func (n *Node) ReinstallNode() {
 	log.Fatalln("Node successfully reset. Restarting...")
 }
 
-// TODO: Refactor
 func inNodeInConfiguration(servers []raft.Server, id string) bool {
 	for _, server := range servers {
 		if server.ID == raft.ServerID(id) {
