@@ -77,7 +77,7 @@ func (n *Node) registerLeaderChangesChan() {
 func (n *Node) registerFailedHBChangesChan() {
 	n.chans.failedHBChanges = make(chan raft.Observation, 4)
 	// Creates and registers an observer that filters for failed heartbeat observations and sends them to the channel.
-	registerNewObserver[raft.FailedHeartbeatObservation](n.Consensus, n.chans.leaderChanges)
+	registerNewObserver[raft.FailedHeartbeatObservation](n.Consensus, n.chans.failedHBChanges)
 	// Call methods to handle incoming observations.
 	go n.removeNodesOnHBStrategy()
 }
@@ -86,7 +86,7 @@ func (n *Node) registerFailedHBChangesChan() {
 func (n *Node) registerRequestVoteRequestChan() {
 	n.chans.requestVoteRequest = make(chan raft.Observation, 4)
 	// Creates and registers an observer that filters for changes in election-votes observations and sends them to the channel.
-	registerNewObserver[raft.RequestVoteRequest](n.Consensus, n.chans.leaderChanges)
+	registerNewObserver[raft.RequestVoteRequest](n.Consensus, n.chans.requestVoteRequest)
 	// Call methods to handle incoming observations.
 	go n.onRequestVoteRequest()
 }
