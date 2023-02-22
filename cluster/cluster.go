@@ -1,3 +1,4 @@
+// Package cluster is responsible for doing operations on the cluster.
 package cluster
 
 import (
@@ -17,7 +18,7 @@ import (
 const (
 	errDBCluster      = "consensus returned an error when trying to Apply an order."
 	errGrpcTalkLeader = "failed to get an ok response from the Leader via grpc"
-	errGrpcTalkNode   = "failed to get an ok response from the node via grpc"
+	errGrpcTalkNode   = "failed to get an ok response from the Node via grpc"
 )
 
 func Execute(consensus *raft.Raft, payload *fsm.Payload) error {
@@ -27,12 +28,15 @@ func Execute(consensus *raft.Raft, payload *fsm.Payload) error {
 	}
 
 	if consensus.State() != raft.Leader {
-		return handleForwardLeaderFuture(consensus, payload)
+		return forwardLeaderFuture(consensus, payload)
 	}
 
 	return ApplyLeaderFuture(consensus, payloadData)
 }
 
+// ApplyLeaderFuture applies a command on the Leader of the cluster.
+//
+// Should only be executed if the Node is a Leader.
 func ApplyLeaderFuture(consensus *raft.Raft, payloadData []byte) error {
 	const timeout = 500 * time.Millisecond
 
@@ -53,17 +57,13 @@ func ApplyLeaderFuture(consensus *raft.Raft, payloadData []byte) error {
 	return nil
 }
 
-func handleForwardLeaderFuture(consensus *raft.Raft, payload *fsm.Payload) error {
+func forwardLeaderFuture(consensus *raft.Raft, payload *fsm.Payload) error {
 	_, leaderID := consensus.LeaderWithID()
-	err := forwardLeaderFuture(string(leaderID), payload)
-	if err != nil {
-		return errorskit.Wrap(err, errDBCluster+" At handling forward")
+	if string(leaderID) == "" {
+		return errors.New("leader id was empty")
 	}
-	return nil
-}
 
-func forwardLeaderFuture(leaderID string, payload *fsm.Payload) error {
-	leaderGrpcAddr := config.MakeGrpcAddress(leaderID)
+	leaderGrpcAddr := config.MakeGrpcAddress(string(leaderID))
 	log.Printf("[proto] payload for leader received in this node, forwarding to leader '%s' @ '%s'\n",
 		leaderID, leaderGrpcAddr,
 	)
@@ -89,6 +89,7 @@ func forwardLeaderFuture(leaderID string, payload *fsm.Payload) error {
 	return nil
 }
 
+// IsLeader takes a GRPC address and returns if the node reports back as a Leader
 func IsLeader(addr string) (bool, error) {
 	conn, errConn := protoclient.NewConnection(addr)
 	if errConn != nil {

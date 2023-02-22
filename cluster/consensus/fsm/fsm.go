@@ -9,10 +9,16 @@ import (
 	"io"
 )
 
+// DatabaseFSM represents the finite state machine implementation for the database
 type DatabaseFSM struct {
 	db *badger.DB
 }
 
+// snapshot's is a struct that represents the snapshot of the state machine.
+//
+// In nubedb's particular case, since it uses BadgerDB, it already persists data when Apply is called,
+//
+// the Snapshot method is not needed.
 type snapshot struct{}
 
 // Payload is the Payload sent for use in raft.Apply
@@ -22,17 +28,22 @@ type Payload struct {
 	Operation string `json:"operation"`
 }
 
-// ApplyRes represents the response from raft's apply
+// ApplyRes represents the response from raft.Apply
 type ApplyRes struct {
 	Data  any
 	Error error
 }
 
+// New creates a new instance of DatabaseFSM.
+//
+// Check DatabaseFSM for more info
 func New(db *badger.DB) *DatabaseFSM {
 	return &DatabaseFSM{db: db}
 }
 
+// Apply processes a Raft log entry
 func (dbFSM DatabaseFSM) Apply(log *raft.Log) any {
+	// Process the Raft log entry based on its type
 	switch log.Type {
 	case raft.LogCommand:
 		p := new(Payload)
@@ -41,6 +52,8 @@ func (dbFSM DatabaseFSM) Apply(log *raft.Log) any {
 			return errorskit.Wrap(errUnMarshal, "couldn't unmarshal storage payload")
 		}
 
+		// Process the log entry based on the operation type
+		// &ApplyRes struct is used to represent the response from the Apply method of the Raft log
 		switch p.Operation {
 		case "SET":
 			return &ApplyRes{
@@ -60,8 +73,12 @@ func (dbFSM DatabaseFSM) Apply(log *raft.Log) any {
 	}
 }
 
+// Restore restores the finite state machine from a snapshot.
+//
+// io.ReadCloser represents a snapshot of the state machine that needs to be restored.
 func (dbFSM DatabaseFSM) Restore(snap io.ReadCloser) error {
 	d := json.NewDecoder(snap)
+	// Loops through the snapshot data and decodes each key-value pair into a Payload struct.
 	for d.More() {
 		dbValue := new(Payload)
 		errDecode := d.Decode(&dbValue)
@@ -90,14 +107,30 @@ func (dbFSM DatabaseFSM) Restore(snap io.ReadCloser) error {
 	return snap.Close()
 }
 
-// Snapshot isn't needed because BadgerDB persists data when Apply is called.
+// Snapshot is part of the raft.FSM interface, and it's used to create a snapshot of the current state of the system.
+//
+// This is used later to restore the state of the system.
+//
+// In the case of nubedb, this method isn't needed because BadgerDB persists data when Apply is called.
+//
+// Therefore, the Snapshot method simply returns an empty snapshot and a nil error.
+//
+// Note: A snapshot can be useful when the log becomes too large, and it is necessary to reduce its size.
+//
+// When a snapshot is created, it includes all the data required to restore the system to its current state,
+// allowing the system to discard all the log entries prior to the snapshot.
 func (dbFSM DatabaseFSM) Snapshot() (raft.FSMSnapshot, error) {
 	return snapshot{}, nil
 }
 
-// Persist isn't needed because BadgerDB persists data when Apply is called.
+// Persist method is called when a new snapshot is taken, it provides a way to save the snapshot somewhere (for example to a disk).
+//
+// In the case of the nubedb, Persist does nothing because BadgerDB already persists data when Apply is called.
 func (s snapshot) Persist(_ raft.SnapshotSink) error {
 	return nil
 }
 
+// Release method is used to release any resources that were acquired by the Persist method.
+//
+// In the case of nubedb, the Release method is empty because Persist does not acquire any resources.
 func (s snapshot) Release() {}
