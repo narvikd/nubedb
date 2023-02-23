@@ -42,7 +42,7 @@ func (n *Node) registerNodeChangesChan() {
 	n.chans.nodeChanges = make(chan raft.Observation, 4)
 	// Creates and register an observer that filters for raft state observations and sends them to the channel.
 	registerNewObserver[raft.RaftState](n.Consensus, n.chans.nodeChanges)
-	// Creates a goroutine to receive and handle the node changes observations.
+	// Creates a goroutine to receive and handle the observations.
 	go func() {
 		// Blocks until something enters the channel
 		for o := range n.chans.nodeChanges {
@@ -57,7 +57,7 @@ func (n *Node) registerLeaderChangesChan() {
 	n.chans.leaderChanges = make(chan raft.Observation, 4)
 	// Creates and registers an observer that filters for leader observations and sends them to the channel.
 	registerNewObserver[raft.LeaderObservation](n.Consensus, n.chans.leaderChanges)
-	// Creates a goroutine to receive and handle the leader changes observations.
+	// Creates a goroutine to receive and handle the observations.
 	go func() {
 		// Blocks until something enters the channel
 		for o := range n.chans.leaderChanges {
@@ -87,29 +87,26 @@ func (n *Node) registerRequestVoteRequestChan() {
 	n.chans.requestVoteRequest = make(chan raft.Observation, 4)
 	// Creates and registers an observer that filters for changes in election-votes observations and sends them to the channel.
 	registerNewObserver[raft.RequestVoteRequest](n.Consensus, n.chans.requestVoteRequest)
-	// Call methods to handle incoming observations.
-	go n.onRequestVoteRequest()
-}
-
-func (n *Node) onRequestVoteRequest() {
-	// Blocks until something enters the channel
-	for o := range n.chans.requestVoteRequest {
-		data := o.Data.(raft.RequestVoteRequest)
-		idRequester := string(data.ID)
-		srvs := n.Consensus.GetConfiguration().Configuration().Servers
-		if len(srvs) > 0 && !inNodeInConfiguration(srvs, idRequester) {
-			msgWarn := fmt.Sprintf(
-				"Foreign node (%s) attempted to request a vote, but node is not in the configuration. Requesting foreign node's reinstall",
-				idRequester,
-			)
-			n.logger.Warn(msgWarn)
-			err := cluster.RequestNodeReinstall(config.MakeGrpcAddress(idRequester))
-			if err != nil {
-				msgErr := errorskit.Wrap(err, "couldn't reinstall foreign node")
-				n.logger.Error(msgErr.Error())
+	// Creates a goroutine to receive and handle the observations.
+	go func() {
+		// Blocks until something enters the channel
+		for o := range n.chans.requestVoteRequest {
+			data := o.Data.(raft.RequestVoteRequest)
+			idRequester := string(data.ID)
+			if !n.isNodeInConsensusServers(idRequester) {
+				msgWarn := fmt.Sprintf(
+					"Foreign node (%s) attempted to request a vote, but node is not in the configuration. Requesting foreign node's reinstall",
+					idRequester,
+				)
+				n.logger.Warn(msgWarn)
+				err := cluster.RequestNodeReinstall(config.MakeGrpcAddress(idRequester))
+				if err != nil {
+					msgErr := errorskit.Wrap(err, "couldn't reinstall foreign node")
+					n.logger.Error(msgErr.Error())
+				}
 			}
 		}
-	}
+	}()
 }
 
 func (n *Node) removeNodesOnHBStrategy() {
@@ -192,8 +189,12 @@ func (n *Node) ReinstallNode() {
 	log.Fatalln("Node successfully reset. Restarting...")
 }
 
-func inNodeInConfiguration(servers []raft.Server, id string) bool {
-	for _, server := range servers {
+func (n *Node) isNodeInConsensusServers(id string) bool {
+	srvs := n.Consensus.GetConfiguration().Configuration().Servers
+	if len(srvs) <= 0 {
+		return false
+	}
+	for _, server := range srvs {
 		if server.ID == raft.ServerID(id) {
 			return true
 		}
