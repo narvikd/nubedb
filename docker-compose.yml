@@ -21,4 +21,4 @@ services:
       - bootstrap-node
     restart: on-failure
     deploy:
-      replicas: 24
+      replicas: 4
