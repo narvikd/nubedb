@@ -1,6 +1,7 @@
 package consensus
 
 import (
+	"errors"
 	"github.com/dgraph-io/badger/v3"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/raft"
@@ -169,6 +170,10 @@ func (n *Node) setRaft() error {
 		return errStartConsensus
 	}
 
+	errClusterReadiness := n.waitForClusterReadiness()
+	if errClusterReadiness != nil {
+		return errClusterReadiness
+	}
 	// Register the observers
 	n.registerObservers()
 	return nil
@@ -182,27 +187,18 @@ func (n *Node) startConsensus(currentNodeID string) error {
 	// Check if the consensus has already been bootstrapped.
 	consensusCfg := n.Consensus.GetConfiguration().Configuration()
 	if len(consensusCfg.Servers) >= 2 {
+		n.logger.Info("consensus already bootstrapped")
 		return nil
 	}
 
 	// Define the list of bootstrapping servers.
-	bootstrappingServers := []raft.Server{
-		{
-			ID:      raft.ServerID(bootstrappingLeader),
-			Address: raft.ServerAddress(config.MakeConsensusAddr(bootstrappingLeader)),
-		},
-	}
+	bootstrappingServers := newConsensusServerList(bootstrappingLeader)
 
 	// Search for an existing leader and use it to overwrite the bootstrapping list.
 	// This is used in case bootstrappingLeader is down, or if it isn't the leader.
 	leaderID, errSearchLeader := discover.SearchLeader(currentNodeID)
 	if errSearchLeader == nil {
-		bootstrappingServers = []raft.Server{
-			{
-				ID:      raft.ServerID(leaderID),
-				Address: raft.ServerAddress(config.MakeConsensusAddr(leaderID)),
-			},
-		}
+		bootstrappingServers = newConsensusServerList(leaderID)
 	}
 
 	// The consensus is going to try to bootstrap.
@@ -238,4 +234,34 @@ func joinNodeToExistingConsensus(nodeID string) error {
 		return errSearchLeader
 	}
 	return cluster.ConsensusJoin(nodeID, config.MakeConsensusAddr(nodeID), config.MakeGrpcAddress(leaderID))
+}
+
+func newConsensusServerList(nodeID string) []raft.Server {
+	return []raft.Server{
+		{
+			ID:      raft.ServerID(nodeID),
+			Address: raft.ServerAddress(config.MakeConsensusAddr(nodeID)),
+		},
+	}
+}
+
+func (n *Node) waitForClusterReadiness() error {
+	currentTry := 0
+	const (
+		maxRetryCount = 7
+		sleepTime     = 1 * time.Minute
+	)
+	for {
+		currentTry++
+		if currentTry > maxRetryCount {
+			return errors.New("quorum retry max reached")
+		}
+		if n.IsQuorumPossible(true) {
+			n.logger.Info("quorum possible.")
+			break
+		}
+		n.logger.Error("it is not possible to reach Quorum due to lack of nodes. Retrying...")
+		time.Sleep(sleepTime)
+	}
+	return nil
 }
