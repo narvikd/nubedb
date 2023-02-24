@@ -144,7 +144,7 @@ func ConsensusRemove(nodeID string, leaderGrpcAddr string) error {
 	return nil
 }
 
-func GetAliveNodes(consensus *raft.Raft, currentNodeID string) ([]raft.Server, error) {
+func GetAliveNodes(consensus *raft.Raft, currentNodeID string) []raft.Server {
 	const timeout = 300 * time.Millisecond
 	var alive []raft.Server
 
@@ -160,11 +160,7 @@ func GetAliveNodes(consensus *raft.Raft, currentNodeID string) ([]raft.Server, e
 		}
 	}
 
-	if len(alive) == 0 {
-		return nil, errors.New("no alive nodes")
-	}
-
-	return alive, nil
+	return alive
 }
 
 func RequestNodeReinstall(nodeGrpcAddr string) error {

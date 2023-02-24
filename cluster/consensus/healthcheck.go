@@ -2,7 +2,6 @@ package consensus
 
 import (
 	"github.com/hashicorp/raft"
-	"github.com/narvikd/errorskit"
 	"math"
 	"nubedb/cluster"
 	"strconv"
@@ -36,14 +35,7 @@ func (n *Node) IsHealthy() bool {
 		return false
 	}
 
-	isQuorumPossible, errQuorum := n.isQuorumPossible()
-	if errQuorum != nil {
-		errWrap := errorskit.Wrap(errQuorum, prefixErr)
-		n.logger.Error(errWrap.Error())
-		return false
-	}
-
-	if !isQuorumPossible {
+	if !n.IsQuorumPossible(false) {
 		n.logger.Warn(prefixErr + "quorum is not possible due to lack of available nodes")
 		return false
 	}
@@ -51,24 +43,35 @@ func (n *Node) IsHealthy() bool {
 	return true
 }
 
-// isQuorumPossible checks if a quorum is possible based on the number of available nodes.
-func (n *Node) isQuorumPossible() (bool, error) {
-	peers, _ := strconv.Atoi(n.Consensus.Stats()["num_peers"]) // Safe to ignore this error
-	necessaryForQuorum := math.Ceil(float64(peers) / 2.0)
-
-	totalNodes, err := n.getNumAliveNodes()
-	if err != nil {
-		return false, err
+// IsQuorumPossible checks if a quorum is possible based on the number of available nodes.
+//
+// In the raft consensus algorithm a quorum can be reached when (onlineNodes >= (consensusNodes/2)+1)
+//
+// To be in the safe side, it will return as false without the added margin.
+//
+// preAlert changes the formula to return false before the number of nodes needed for the quorum would become insufficient.
+//
+// Example:
+//
+// preAlert to false -> For 5 nodes, 3 are required.
+//
+// preAlert to true -> For 5 nodes, 4 are required.
+//
+// preAlert to false -> For 10 nodes, 5 are required.
+//
+// preAlert to true -> For 10 nodes, 8 are required.
+func (n *Node) IsQuorumPossible(preAlert bool) bool {
+	const (
+		half       = 0.5
+		percentile = 0.75
+	)
+	// Safe to ignore this error since it will always return a number
+	consensusNodes, _ := strconv.ParseFloat(n.Consensus.Stats()["num_peers"], 64)
+	necessaryForQuorum := math.Round(consensusNodes * half)
+	if preAlert {
+		necessaryForQuorum = math.Round(consensusNodes * percentile)
 	}
+	onlineNodes := len(cluster.GetAliveNodes(n.Consensus, n.ID))
 
-	return float64(totalNodes) >= necessaryForQuorum, nil
-}
-
-// getNumAliveNodes gets the number of alive nodes in the cluster
-func (n *Node) getNumAliveNodes() (int, error) {
-	nodes, err := cluster.GetAliveNodes(n.Consensus, n.ID)
-	if err != nil {
-		return 0, err
-	}
-	return len(nodes), nil
+	return float64(onlineNodes) >= necessaryForQuorum
 }

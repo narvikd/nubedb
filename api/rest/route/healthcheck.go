@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/gofiber/fiber/v2"
 	"nubedb/api/rest/jsonresponse"
+	"strconv"
 )
 
 func (a *ApiCtx) healthCheck(fiberCtx *fiber.Ctx) error {
@@ -18,5 +19,6 @@ func (a *ApiCtx) consensusState(fiberCtx *fiber.Ctx) error {
 	address, id := a.Node.Consensus.LeaderWithID()
 	stats["leader"] = fmt.Sprintf("Address: %s Leader ID: %s", address, id)
 	stats["node_id"] = a.Config.CurrentNode.ID
+	stats["is_quorum_possible"] = strconv.FormatBool(a.Node.IsQuorumPossible(false))
 	return jsonresponse.OK(fiberCtx, "consensus state retrieved successfully", stats)
 }

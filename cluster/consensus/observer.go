@@ -78,8 +78,17 @@ func (n *Node) registerFailedHBChangesChan() {
 	n.chans.failedHBChanges = make(chan raft.Observation, 4)
 	// Creates and registers an observer that filters for failed heartbeat observations and sends them to the channel.
 	registerNewObserver[raft.FailedHeartbeatObservation](n.Consensus, n.chans.failedHBChanges)
-	// Call methods to handle incoming observations.
-	go n.removeNodesOnHBStrategy()
+	// Creates a goroutine to receive and handle the observations.
+	go func() {
+		// Blocks until something enters the channel
+		for o := range n.chans.failedHBChanges {
+			obs := o.Data.(raft.FailedHeartbeatObservation)
+			warnMsg := fmt.Sprintf("REMOVING NODE '%v' from the Leader due to being offline...", obs.PeerID)
+			n.logger.Warn(warnMsg)
+			n.Consensus.RemoveServer(obs.PeerID, 0, 0)
+			n.logger.Warn("NODE SUCCESSFULLY REMOVED FROM STATE CONSENSUS")
+		}
+	}()
 }
 
 // registerLeaderChangesChan registers the vote requests observer channel.
@@ -109,45 +118,18 @@ func (n *Node) registerRequestVoteRequestChan() {
 	}()
 }
 
-func (n *Node) removeNodesOnHBStrategy() {
-	const timeout = 20
-	// Blocks until something enters the channel
-	for o := range n.chans.failedHBChanges {
-		obs := o.Data.(raft.FailedHeartbeatObservation)
-		dur := time.Since(obs.LastContact)
-		duration := dur.Seconds()
-
-		if duration >= timeout {
-			warnMsg := fmt.Sprintf(
-				"REMOVING NODE '%v' from the Leader due to not having a connection for %v secs...",
-				obs.PeerID, duration,
-			)
-			n.logger.Warn(warnMsg)
-			n.Consensus.RemoveServer(obs.PeerID, 0, 0)
-			n.logger.Warn("NODE SUCCESSFULLY REMOVED FROM STATE CONSENSUS")
-		}
-
-		// TODO: Maybe timeout could be increased if there is a check for isHealthy or isQuorum possible
-
-	}
-}
-
 // TODO: Maybe this will block because it isn't in a go routine?
 func (n *Node) checkIfNodeNeedsUnblock() {
-	const timeout = 60 * time.Second
-
+	const timeout = 1 * time.Minute
 	_, leaderID := n.Consensus.LeaderWithID()
 	if leaderID != "" {
 		return
 	}
-
 	time.Sleep(timeout)
-
 	_, leaderID = n.Consensus.LeaderWithID()
 	if leaderID != "" {
 		return
 	}
-
 	n.ReinstallNode()
 }
 
@@ -159,11 +141,11 @@ func (n *Node) ReinstallNode() {
 		return
 	}
 
-	log.Println("node got stuck for too long... Node reinstall in progress...")
-
 	// Sets the flag that an unblocking process is in progress
 	n.SetUnBlockingInProgress(true)
 	defer n.SetUnBlockingInProgress(false)
+
+	log.Println("node got stuck for too long... Node reinstall in progress...")
 
 	future := n.Consensus.Shutdown()
 	if future.Error() != nil {
