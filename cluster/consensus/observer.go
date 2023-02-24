@@ -110,24 +110,27 @@ func (n *Node) registerRequestVoteRequestChan() {
 }
 
 func (n *Node) removeNodesOnHBStrategy() {
-	const timeout = 20
+	const timeout = 8
 	// Blocks until something enters the channel
 	for o := range n.chans.failedHBChanges {
 		obs := o.Data.(raft.FailedHeartbeatObservation)
-		dur := time.Since(obs.LastContact)
-		duration := dur.Seconds()
-
-		if duration >= timeout {
+		duration := time.Since(obs.LastContact).Hours()
+		isQuorumPossible := n.IsQuorumPossible(true)
+		if duration >= timeout || !isQuorumPossible {
 			warnMsg := fmt.Sprintf(
-				"REMOVING NODE '%v' from the Leader due to not having a connection for %v secs...",
+				"REMOVING NODE '%v' from the Leader due to not having a connection for %v hours...",
 				obs.PeerID, duration,
 			)
+			if !isQuorumPossible {
+				warnMsg = fmt.Sprintf(
+					"REMOVING NODE '%v' from the Leader due to not being able to complete an election because a quorum is not possible",
+					obs.PeerID,
+				)
+			}
 			n.logger.Warn(warnMsg)
 			n.Consensus.RemoveServer(obs.PeerID, 0, 0)
 			n.logger.Warn("NODE SUCCESSFULLY REMOVED FROM STATE CONSENSUS")
 		}
-
-		// TODO: Maybe timeout could be increased if there is a check for isHealthy or isQuorum possible
 
 	}
 }
@@ -135,7 +138,6 @@ func (n *Node) removeNodesOnHBStrategy() {
 // TODO: Maybe this will block because it isn't in a go routine?
 func (n *Node) checkIfNodeNeedsUnblock() {
 	const timeout = 60 * time.Second
-
 	_, leaderID := n.Consensus.LeaderWithID()
 	if leaderID != "" {
 		return
