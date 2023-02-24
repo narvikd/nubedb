@@ -34,6 +34,9 @@ func routes(app *fiber.App, route *ApiCtx) {
 	app.Post("/store", route.storeSet)
 	app.Delete("/store", route.storeDelete)
 
+	app.Get("/store/backup", route.storeBackup)
+	app.Post("/store/restore", route.restoreBackup)
+
 	app.Get("/consensus", route.consensusState)
 	app.Get("/healthcheck", route.healthCheck)
 }

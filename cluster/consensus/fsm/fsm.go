@@ -63,6 +63,10 @@ func (dbFSM DatabaseFSM) Apply(log *raft.Log) any {
 			return &ApplyRes{
 				Error: dbFSM.delete(p.Key),
 			}
+		case "RESTOREDB":
+			return &ApplyRes{
+				Error: dbFSM.RestoreDB(p.Value),
+			}
 		default:
 			return &ApplyRes{
 				Error: fmt.Errorf("operation type not recognized: %v", p.Operation),
