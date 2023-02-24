@@ -45,9 +45,7 @@ func (n *Node) IsHealthy() bool {
 
 // IsQuorumPossible checks if a quorum is possible based on the number of available nodes.
 //
-// # In the raft consensus algorithm a quorum can be reached when
-//
-// (onlineNodes >= (consensusNodes/2)+1)
+// In the raft consensus algorithm a quorum can be reached when (onlineNodes >= (consensusNodes/2)+1)
 //
 // To be in the safe side, it will return as false without the added margin.
 //
