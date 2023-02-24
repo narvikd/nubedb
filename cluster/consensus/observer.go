@@ -20,20 +20,29 @@ func (n *Node) registerObservers() {
 	n.registerRequestVoteRequestChan()
 }
 
+// registerNewObserver creates and registers a new observer with consensus which filters for T.
+//
+// Usage: registerNewObserver[type](consensus, chan)
+//
+// The [T any] defines a compile-time type argument named "T", it has to implement the "any" constraint
+//
+// (which is compatible with everything), inside the function it can be used as if was a type.
+//
+// When passing newObserver[raft.Something] it passes the type raft.Something as an argument.
+func registerNewObserver[T any](consensus *raft.Raft, channel chan raft.Observation) {
+	observer := raft.NewObserver(channel, false, func(o *raft.Observation) bool {
+		_, ok := o.Data.(T)
+		return ok
+	})
+	consensus.RegisterObserver(observer)
+}
+
 // registerNodeChangesChan registers the node changes observer channel.
 func (n *Node) registerNodeChangesChan() {
 	n.chans.nodeChanges = make(chan raft.Observation, 4)
-
-	// Create an observer that filters for raft state observations and sends them to the channel.
-	observer := raft.NewObserver(n.chans.nodeChanges, false, func(o *raft.Observation) bool {
-		_, ok := o.Data.(raft.RaftState)
-		return ok
-	})
-
-	// Register the observer with the consensus algorithm.
-	n.Consensus.RegisterObserver(observer)
-
-	// Create a goroutine to receive and handle the node changes observations
+	// Creates and register an observer that filters for raft state observations and sends them to the channel.
+	registerNewObserver[raft.RaftState](n.Consensus, n.chans.nodeChanges)
+	// Creates a goroutine to receive and handle the observations.
 	go func() {
 		// Blocks until something enters the channel
 		for o := range n.chans.nodeChanges {
@@ -46,15 +55,9 @@ func (n *Node) registerNodeChangesChan() {
 // registerLeaderChangesChan registers the leader changes observer channel.
 func (n *Node) registerLeaderChangesChan() {
 	n.chans.leaderChanges = make(chan raft.Observation, 4)
-	// Create an observer that filters for leader observations and sends them to the channel.
-	observer := raft.NewObserver(n.chans.leaderChanges, false, func(o *raft.Observation) bool {
-		_, ok := o.Data.(raft.LeaderObservation)
-		return ok
-	})
-	// Register the observer with the consensus algorithm.
-	n.Consensus.RegisterObserver(observer)
-
-	// Create a goroutine to receive and handle the leader changes observations
+	// Creates and registers an observer that filters for leader observations and sends them to the channel.
+	registerNewObserver[raft.LeaderObservation](n.Consensus, n.chans.leaderChanges)
+	// Creates a goroutine to receive and handle the observations.
 	go func() {
 		// Blocks until something enters the channel
 		for o := range n.chans.leaderChanges {
@@ -73,14 +76,8 @@ func (n *Node) registerLeaderChangesChan() {
 // registerLeaderChangesChan registers the failed heartbeat observer channel.
 func (n *Node) registerFailedHBChangesChan() {
 	n.chans.failedHBChanges = make(chan raft.Observation, 4)
-	// Create an observer that filters for failed heartbeat observations and sends them to the channel.
-	observer := raft.NewObserver(n.chans.failedHBChanges, false, func(o *raft.Observation) bool {
-		_, ok := o.Data.(raft.FailedHeartbeatObservation)
-		return ok
-	})
-	// Register the observer with the consensus algorithm.
-	n.Consensus.RegisterObserver(observer)
-
+	// Creates and registers an observer that filters for failed heartbeat observations and sends them to the channel.
+	registerNewObserver[raft.FailedHeartbeatObservation](n.Consensus, n.chans.failedHBChanges)
 	// Call methods to handle incoming observations.
 	go n.removeNodesOnHBStrategy()
 }
@@ -88,35 +85,28 @@ func (n *Node) registerFailedHBChangesChan() {
 // registerLeaderChangesChan registers the vote requests observer channel.
 func (n *Node) registerRequestVoteRequestChan() {
 	n.chans.requestVoteRequest = make(chan raft.Observation, 4)
-	observer := raft.NewObserver(n.chans.requestVoteRequest, false, func(o *raft.Observation) bool {
-		_, ok := o.Data.(raft.RequestVoteRequest)
-		return ok
-	})
-	// Register the observer with the consensus algorithm.
-	n.Consensus.RegisterObserver(observer)
-	// Call methods to handle incoming observations.
-	go n.onRequestVoteRequest()
-}
-
-func (n *Node) onRequestVoteRequest() {
-	// Blocks until something enters the channel
-	for o := range n.chans.requestVoteRequest {
-		data := o.Data.(raft.RequestVoteRequest)
-		idRequester := string(data.ID)
-		srvs := n.Consensus.GetConfiguration().Configuration().Servers
-		if len(srvs) > 0 && !inNodeInConfiguration(srvs, idRequester) {
-			msgWarn := fmt.Sprintf(
-				"Foreign node (%s) attempted to request a vote, but node is not in the configuration. Requesting foreign node's reinstall",
-				idRequester,
-			)
-			n.logger.Warn(msgWarn)
-			err := cluster.RequestNodeReinstall(config.MakeGrpcAddress(idRequester))
-			if err != nil {
-				msgErr := errorskit.Wrap(err, "couldn't reinstall foreign node")
-				n.logger.Error(msgErr.Error())
+	// Creates and registers an observer that filters for changes in election-votes observations and sends them to the channel.
+	registerNewObserver[raft.RequestVoteRequest](n.Consensus, n.chans.requestVoteRequest)
+	// Creates a goroutine to receive and handle the observations.
+	go func() {
+		// Blocks until something enters the channel
+		for o := range n.chans.requestVoteRequest {
+			data := o.Data.(raft.RequestVoteRequest)
+			idRequester := string(data.ID)
+			if !n.isNodeInConsensusServers(idRequester) {
+				msgWarn := fmt.Sprintf(
+					"Foreign node (%s) attempted to request a vote, but node is not in the configuration. Requesting foreign node's reinstall",
+					idRequester,
+				)
+				n.logger.Warn(msgWarn)
+				err := cluster.RequestNodeReinstall(config.MakeGrpcAddress(idRequester))
+				if err != nil {
+					msgErr := errorskit.Wrap(err, "couldn't reinstall foreign node")
+					n.logger.Error(msgErr.Error())
+				}
 			}
 		}
-	}
+	}()
 }
 
 func (n *Node) removeNodesOnHBStrategy() {
@@ -199,9 +189,12 @@ func (n *Node) ReinstallNode() {
 	log.Fatalln("Node successfully reset. Restarting...")
 }
 
-// TODO: Refactor
-func inNodeInConfiguration(servers []raft.Server, id string) bool {
-	for _, server := range servers {
+func (n *Node) isNodeInConsensusServers(id string) bool {
+	srvs := n.Consensus.GetConfiguration().Configuration().Servers
+	if len(srvs) <= 0 {
+		return false
+	}
+	for _, server := range srvs {
 		if server.ID == raft.ServerID(id) {
 			return true
 		}
