@@ -253,7 +253,7 @@ func (n *Node) waitForClusterReadiness() error {
 	)
 	for {
 		currentTry++
-		if currentTry >= maxRetryCount {
+		if currentTry > maxRetryCount {
 			return errors.New("quorum retry max reached")
 		}
 		if n.IsQuorumPossible(true) {
