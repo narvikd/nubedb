@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/raft-boltdb/v2"
 	"github.com/narvikd/errorskit"
 	"github.com/narvikd/filekit"
+	"log"
 	"net"
 	"nubedb/cluster"
 	"nubedb/cluster/consensus/fsm"
@@ -169,6 +170,7 @@ func (n *Node) setRaft() error {
 		return errStartConsensus
 	}
 
+	n.waitForClusterReadiness()
 	// Register the observers
 	n.registerObservers()
 	return nil
@@ -182,6 +184,7 @@ func (n *Node) startConsensus(currentNodeID string) error {
 	// Check if the consensus has already been bootstrapped.
 	consensusCfg := n.Consensus.GetConfiguration().Configuration()
 	if len(consensusCfg.Servers) >= 2 {
+		n.logger.Info("consensus already bootstrapped")
 		return nil
 	}
 
@@ -238,4 +241,21 @@ func joinNodeToExistingConsensus(nodeID string) error {
 		return errSearchLeader
 	}
 	return cluster.ConsensusJoin(nodeID, config.MakeConsensusAddr(nodeID), config.MakeGrpcAddress(leaderID))
+}
+
+func (n *Node) waitForClusterReadiness() {
+	const maxRetryCount = 7
+	currentTry := 0
+	for {
+		currentTry++
+		if currentTry >= maxRetryCount {
+			log.Fatalln("quorum retry max. Exiting...")
+		}
+		if n.IsQuorumPossible(true) {
+			n.logger.Info("quorum possible.")
+			break
+		}
+		n.logger.Error("it is not possible to reach Quorum due to lack of nodes. Retrying...")
+		time.Sleep(1 * time.Minute)
+	}
 }
