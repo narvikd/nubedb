@@ -189,23 +189,13 @@ func (n *Node) startConsensus(currentNodeID string) error {
 	}
 
 	// Define the list of bootstrapping servers.
-	bootstrappingServers := []raft.Server{
-		{
-			ID:      raft.ServerID(bootstrappingLeader),
-			Address: raft.ServerAddress(config.MakeConsensusAddr(bootstrappingLeader)),
-		},
-	}
+	bootstrappingServers := newConsensusServerList(bootstrappingLeader)
 
 	// Search for an existing leader and use it to overwrite the bootstrapping list.
 	// This is used in case bootstrappingLeader is down, or if it isn't the leader.
 	leaderID, errSearchLeader := discover.SearchLeader(currentNodeID)
 	if errSearchLeader == nil {
-		bootstrappingServers = []raft.Server{
-			{
-				ID:      raft.ServerID(leaderID),
-				Address: raft.ServerAddress(config.MakeConsensusAddr(leaderID)),
-			},
-		}
+		bootstrappingServers = newConsensusServerList(leaderID)
 	}
 
 	// The consensus is going to try to bootstrap.
@@ -243,14 +233,21 @@ func joinNodeToExistingConsensus(nodeID string) error {
 	return cluster.ConsensusJoin(nodeID, config.MakeConsensusAddr(nodeID), config.MakeGrpcAddress(leaderID))
 }
 
+func newConsensusServerList(nodeID string) []raft.Server {
+	return []raft.Server{
+		{
+			ID:      raft.ServerID(nodeID),
+			Address: raft.ServerAddress(config.MakeConsensusAddr(nodeID)),
+		},
+	}
+}
+
 func (n *Node) waitForClusterReadiness() {
+	currentTry := 0
 	const (
 		maxRetryCount = 7
 		sleepTime     = 1 * time.Minute
 	)
-
-	currentTry := 0
-
 	for {
 		currentTry++
 		if currentTry >= maxRetryCount {
