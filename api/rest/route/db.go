@@ -1,6 +1,7 @@
 package route
 
 import (
+	"bytes"
 	"github.com/gofiber/fiber/v2"
 	"github.com/narvikd/fiberparser"
 	"nubedb/api/rest/jsonresponse"
@@ -64,4 +65,22 @@ func (a *ApiCtx) storeDelete(fiberCtx *fiber.Ctx) error {
 	}
 
 	return jsonresponse.OK(fiberCtx, "data deleted successfully", "")
+}
+
+func (a *ApiCtx) storeBackup(fiberCtx *fiber.Ctx) error {
+	backup, err := a.Node.FSM.Backup()
+	if err != nil {
+		return jsonresponse.ServerError(fiberCtx, "couldn't backup DB: "+err.Error())
+	}
+
+	headers := make(map[string]string)
+	// set filename and disposition
+	headers["Content-Disposition"] = "attachment; filename=backup.db"
+	// set content type to binary
+	headers["Content-Type"] = "application/octet-stream"
+	// set the headers
+	for k, v := range headers {
+		fiberCtx.Response().Header.Set(k, v)
+	}
+	return fiberCtx.SendStream(bytes.NewReader(backup), len(backup))
 }
