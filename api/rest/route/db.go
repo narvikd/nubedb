@@ -77,11 +77,11 @@ func (a *ApiCtx) storeBackup(fiberCtx *fiber.Ctx) error {
 	}
 
 	headers := make(map[string]string)
-	// set filename and disposition
+	// Sets the filename and disposition to tell the browser there's an attachment to be downloaded.
 	headers["Content-Disposition"] = "attachment; filename=backup.db"
-	// set content type to binary
+	// Sets content type to binary file
 	headers["Content-Type"] = "application/octet-stream"
-	// set the headers
+	// Sets the map headers
 	for k, v := range headers {
 		fiberCtx.Response().Header.Set(k, v)
 	}
