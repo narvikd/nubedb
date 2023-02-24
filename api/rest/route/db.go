@@ -68,7 +68,7 @@ func (a *ApiCtx) storeDelete(fiberCtx *fiber.Ctx) error {
 }
 
 func (a *ApiCtx) storeBackup(fiberCtx *fiber.Ctx) error {
-	backup, err := a.Node.FSM.Backup()
+	backup, err := a.Node.FSM.BackupDB()
 	if err != nil {
 		return jsonresponse.ServerError(fiberCtx, "couldn't backup DB: "+err.Error())
 	}

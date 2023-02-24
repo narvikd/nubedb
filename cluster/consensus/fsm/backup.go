@@ -5,7 +5,7 @@ import (
 	"errors"
 )
 
-func (dbFSM DatabaseFSM) Backup() ([]byte, error) {
+func (dbFSM DatabaseFSM) BackupDB() ([]byte, error) {
 	w := bytes.NewBuffer(make([]byte, 0))
 	_, err := dbFSM.db.Backup(w, 0)
 	if err != nil {
