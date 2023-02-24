@@ -110,46 +110,28 @@ func (n *Node) registerRequestVoteRequestChan() {
 }
 
 func (n *Node) removeNodesOnHBStrategy() {
-	const timeout = 8
 	// Blocks until something enters the channel
 	for o := range n.chans.failedHBChanges {
 		obs := o.Data.(raft.FailedHeartbeatObservation)
-		duration := time.Since(obs.LastContact).Hours()
-		isQuorumPossible := n.IsQuorumPossible(true)
-		if duration >= timeout || !isQuorumPossible {
-			warnMsg := fmt.Sprintf(
-				"REMOVING NODE '%v' from the Leader due to not having a connection for %v hours...",
-				obs.PeerID, duration,
-			)
-			if !isQuorumPossible {
-				warnMsg = fmt.Sprintf(
-					"REMOVING NODE '%v' from the Leader due to not being able to complete an election because a quorum is not possible",
-					obs.PeerID,
-				)
-			}
-			n.logger.Warn(warnMsg)
-			n.Consensus.RemoveServer(obs.PeerID, 0, 0)
-			n.logger.Warn("NODE SUCCESSFULLY REMOVED FROM STATE CONSENSUS")
-		}
-
+		warnMsg := fmt.Sprintf("REMOVING NODE '%v' from the Leader due to being offline...", obs.PeerID)
+		n.logger.Warn(warnMsg)
+		n.Consensus.RemoveServer(obs.PeerID, 0, 0)
+		n.logger.Warn("NODE SUCCESSFULLY REMOVED FROM STATE CONSENSUS")
 	}
 }
 
 // TODO: Maybe this will block because it isn't in a go routine?
 func (n *Node) checkIfNodeNeedsUnblock() {
-	const timeout = 60 * time.Second
+	const timeout = 1 * time.Minute
 	_, leaderID := n.Consensus.LeaderWithID()
 	if leaderID != "" {
 		return
 	}
-
 	time.Sleep(timeout)
-
 	_, leaderID = n.Consensus.LeaderWithID()
 	if leaderID != "" {
 		return
 	}
-
 	n.ReinstallNode()
 }
 
@@ -161,11 +143,11 @@ func (n *Node) ReinstallNode() {
 		return
 	}
 
-	log.Println("node got stuck for too long... Node reinstall in progress...")
-
 	// Sets the flag that an unblocking process is in progress
 	n.SetUnBlockingInProgress(true)
 	defer n.SetUnBlockingInProgress(false)
+
+	log.Println("node got stuck for too long... Node reinstall in progress...")
 
 	future := n.Consensus.Shutdown()
 	if future.Error() != nil {
