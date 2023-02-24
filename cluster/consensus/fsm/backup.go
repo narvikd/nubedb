@@ -2,7 +2,9 @@ package fsm
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
+	"github.com/narvikd/errorskit"
 )
 
 func (dbFSM DatabaseFSM) BackupDB() ([]byte, error) {
@@ -15,4 +17,16 @@ func (dbFSM DatabaseFSM) BackupDB() ([]byte, error) {
 		return nil, errors.New("backup size is 0 or lower")
 	}
 	return w.Bytes(), nil
+}
+
+func (dbFSM DatabaseFSM) RestoreDB(contents any) error {
+	// maxPendingWrites is 256, to minimise memory usage and overall finish time. This is just a throttle option.
+	const maxPendingWrites = 256
+
+	dbValue, errMarshal := json.Marshal(contents)
+	if errMarshal != nil {
+		return errorskit.Wrap(errMarshal, "couldn't marshal value on set")
+	}
+
+	return dbFSM.db.Load(bytes.NewReader(dbValue), maxPendingWrites)
 }

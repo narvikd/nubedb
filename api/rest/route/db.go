@@ -2,8 +2,11 @@ package route
 
 import (
 	"bytes"
+	"encoding/json"
+	"fmt"
 	"github.com/gofiber/fiber/v2"
 	"github.com/narvikd/fiberparser"
+	"io"
 	"nubedb/api/rest/jsonresponse"
 	"nubedb/cluster"
 	"nubedb/cluster/consensus/fsm"
@@ -83,4 +86,45 @@ func (a *ApiCtx) storeBackup(fiberCtx *fiber.Ctx) error {
 		fiberCtx.Response().Header.Set(k, v)
 	}
 	return fiberCtx.SendStream(bytes.NewReader(backup), len(backup))
+}
+
+func (a *ApiCtx) restoreBackup(fiberCtx *fiber.Ctx) error {
+	const (
+		key           = "backup"
+		operationType = "RESTOREDB"
+	)
+	// This error handles the case when the file isn't received
+	formFile, errFormFile := fiberCtx.FormFile(key)
+	if errFormFile != nil {
+		errMsg := fmt.Sprintf("couldn't get backup file: %v. Note: Key is '%s'", errFormFile, key)
+		return jsonresponse.ServerError(fiberCtx, errMsg)
+	}
+
+	multiPartFile, errFileOpen := formFile.Open()
+	if errFileOpen != nil {
+		return jsonresponse.ServerError(fiberCtx, "couldn't open the received backup file: "+errFileOpen.Error())
+	}
+	defer multiPartFile.Close()
+
+	buf := make([]byte, formFile.Size)
+	_, errRead := multiPartFile.Read(buf)
+	if errRead != nil && errRead != io.EOF {
+		return jsonresponse.ServerError(fiberCtx, "couldn't read the received backup file: "+errRead.Error())
+	}
+
+	b, errJson := json.Marshal(buf)
+	if errJson != nil {
+		return jsonresponse.ServerError(fiberCtx, "couldn't convert file's contents to a FSM accepted type")
+	}
+
+	payload := &fsm.Payload{
+		Operation: operationType,
+		Value:     b,
+	}
+	errCluster := cluster.Execute(a.Node.Consensus, payload)
+	if errCluster != nil {
+		return jsonresponse.ServerError(fiberCtx, errCluster.Error())
+	}
+
+	return jsonresponse.OK(fiberCtx, "data restored successfully", "")
 }
