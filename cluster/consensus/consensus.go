@@ -244,8 +244,13 @@ func joinNodeToExistingConsensus(nodeID string) error {
 }
 
 func (n *Node) waitForClusterReadiness() {
-	const maxRetryCount = 7
+	const (
+		maxRetryCount = 7
+		sleepTime     = 1 * time.Minute
+	)
+
 	currentTry := 0
+
 	for {
 		currentTry++
 		if currentTry >= maxRetryCount {
@@ -256,6 +261,6 @@ func (n *Node) waitForClusterReadiness() {
 			break
 		}
 		n.logger.Error("it is not possible to reach Quorum due to lack of nodes. Retrying...")
-		time.Sleep(1 * time.Minute)
+		time.Sleep(sleepTime)
 	}
 }
