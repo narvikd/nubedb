@@ -51,11 +51,7 @@ func (n *Node) IsHealthy() bool {
 //
 // To be in the safe side, it will return as false without the added margin.
 //
-// Behaviour for preAlert:
-//
-// preAlert to false -> The moment the quorum is not possible it will return that a quorum can't be reached following the above formula.
-//
-// preAlert to true -> The moment the quorum is reaching a point where it isn't possible to make, it will return that a quorum can't be reached.
+// preAlert changes the formula to return false before the number of nodes needed for the quorum would become insufficient.
 //
 // Example:
 //
