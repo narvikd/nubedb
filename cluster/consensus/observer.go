@@ -78,8 +78,17 @@ func (n *Node) registerFailedHBChangesChan() {
 	n.chans.failedHBChanges = make(chan raft.Observation, 4)
 	// Creates and registers an observer that filters for failed heartbeat observations and sends them to the channel.
 	registerNewObserver[raft.FailedHeartbeatObservation](n.Consensus, n.chans.failedHBChanges)
-	// Call methods to handle incoming observations.
-	go n.removeNodesOnHBStrategy()
+	// Creates a goroutine to receive and handle the observations.
+	go func() {
+		// Blocks until something enters the channel
+		for o := range n.chans.failedHBChanges {
+			obs := o.Data.(raft.FailedHeartbeatObservation)
+			warnMsg := fmt.Sprintf("REMOVING NODE '%v' from the Leader due to being offline...", obs.PeerID)
+			n.logger.Warn(warnMsg)
+			n.Consensus.RemoveServer(obs.PeerID, 0, 0)
+			n.logger.Warn("NODE SUCCESSFULLY REMOVED FROM STATE CONSENSUS")
+		}
+	}()
 }
 
 // registerLeaderChangesChan registers the vote requests observer channel.
@@ -107,17 +116,6 @@ func (n *Node) registerRequestVoteRequestChan() {
 			}
 		}
 	}()
-}
-
-func (n *Node) removeNodesOnHBStrategy() {
-	// Blocks until something enters the channel
-	for o := range n.chans.failedHBChanges {
-		obs := o.Data.(raft.FailedHeartbeatObservation)
-		warnMsg := fmt.Sprintf("REMOVING NODE '%v' from the Leader due to being offline...", obs.PeerID)
-		n.logger.Warn(warnMsg)
-		n.Consensus.RemoveServer(obs.PeerID, 0, 0)
-		n.logger.Warn("NODE SUCCESSFULLY REMOVED FROM STATE CONSENSUS")
-	}
 }
 
 // TODO: Maybe this will block because it isn't in a go routine?
