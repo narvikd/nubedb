@@ -1,32 +1,69 @@
 package fsm
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"github.com/dgraph-io/badger/v3"
 	"github.com/narvikd/errorskit"
 )
 
 func (dbFSM DatabaseFSM) BackupDB() ([]byte, error) {
-	w := bytes.NewBuffer(make([]byte, 0))
-	_, err := dbFSM.db.Backup(w, 0)
-	if err != nil {
-		return nil, err
+	m := make(map[string]any)
+	txn := dbFSM.db.NewTransaction(false)
+	defer txn.Discard()
+
+	it := txn.NewIterator(badger.DefaultIteratorOptions)
+	defer it.Close()
+	for it.Rewind(); it.Valid(); it.Next() {
+		item := it.Item()
+
+		// Get the key and value
+		key := item.KeyCopy(nil)
+		var value []byte
+		errVal := item.Value(func(val []byte) error {
+			value = append([]byte{}, val...)
+			return nil
+		})
+		if errVal != nil {
+			return nil, errVal
+		}
+
+		// json.RawMessage prevents "any" types to be converted to string
+		m[string(key)] = json.RawMessage(value)
 	}
-	if w.Len() <= 0 {
-		return nil, errors.New("backup size is 0 or lower")
+
+	b, errJson := json.Marshal(m)
+	if errJson != nil {
+		return nil, errorskit.Wrap(errJson, "couldn't marshal backup")
 	}
-	return w.Bytes(), nil
+
+	return b, nil
 }
 
 func (dbFSM DatabaseFSM) RestoreDB(contents any) error {
-	// maxPendingWrites is 256, to minimise memory usage and overall finish time. This is just a throttle option.
-	const maxPendingWrites = 256
+	m := contents.(map[string]any)
+	txn := dbFSM.db.NewTransaction(true)
+	defer txn.Discard()
 
-	dbValue, errMarshal := json.Marshal(contents)
-	if errMarshal != nil {
-		return errorskit.Wrap(errMarshal, "couldn't marshal value on set")
+	for k, v := range m {
+		dbValue, errMarshalValue := json.Marshal(v)
+		if errMarshalValue != nil {
+			errMsg := fmt.Sprintf("couldn't restore key '%s'. Err: %v", k, errMarshalValue)
+			return errors.New(errMsg)
+		}
+
+		errSet := txn.Set([]byte(k), dbValue)
+		if errSet != nil {
+			return errorskit.Wrap(errSet, "couldn't set on restore")
+		}
+
 	}
 
-	return dbFSM.db.Load(bytes.NewReader(dbValue), maxPendingWrites)
+	errCommit := txn.Commit()
+	if errCommit != nil {
+		return errorskit.Wrap(errCommit, "couldn't commit transaction")
+	}
+
+	return nil
 }

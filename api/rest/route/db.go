@@ -112,14 +112,13 @@ func (a *ApiCtx) restoreBackup(fiberCtx *fiber.Ctx) error {
 		return jsonresponse.ServerError(fiberCtx, "couldn't read the received backup file: "+errRead.Error())
 	}
 
-	b, errJson := json.Marshal(buf)
-	if errJson != nil {
-		return jsonresponse.ServerError(fiberCtx, "couldn't convert file's contents to a FSM accepted type")
-	}
-
+	// json.RawMessage prevents non-standard types to be converted to string, and, to ensure that the unmarshalling
+	// is delayed and not done in the transport.
+	// This is done this way to prevent problems where non-standard json structures are double-marshalled to string
+	// when they are converted/marshalled from []byte.
 	payload := &fsm.Payload{
 		Operation: operationType,
-		Value:     b,
+		Value:     json.RawMessage(buf),
 	}
 	errCluster := cluster.Execute(a.Node.Consensus, payload)
 	if errCluster != nil {
