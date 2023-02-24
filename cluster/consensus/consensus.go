@@ -1,13 +1,13 @@
 package consensus
 
 import (
+	"errors"
 	"github.com/dgraph-io/badger/v3"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/raft-boltdb/v2"
 	"github.com/narvikd/errorskit"
 	"github.com/narvikd/filekit"
-	"log"
 	"net"
 	"nubedb/cluster"
 	"nubedb/cluster/consensus/fsm"
@@ -170,7 +170,10 @@ func (n *Node) setRaft() error {
 		return errStartConsensus
 	}
 
-	n.waitForClusterReadiness()
+	errClusterReadiness := n.waitForClusterReadiness()
+	if errClusterReadiness != nil {
+		return errClusterReadiness
+	}
 	// Register the observers
 	n.registerObservers()
 	return nil
@@ -242,7 +245,7 @@ func newConsensusServerList(nodeID string) []raft.Server {
 	}
 }
 
-func (n *Node) waitForClusterReadiness() {
+func (n *Node) waitForClusterReadiness() error {
 	currentTry := 0
 	const (
 		maxRetryCount = 7
@@ -251,7 +254,7 @@ func (n *Node) waitForClusterReadiness() {
 	for {
 		currentTry++
 		if currentTry >= maxRetryCount {
-			log.Fatalln("quorum retry max. Exiting...")
+			return errors.New("quorum retry max reached")
 		}
 		if n.IsQuorumPossible(true) {
 			n.logger.Info("quorum possible.")
@@ -260,4 +263,5 @@ func (n *Node) waitForClusterReadiness() {
 		n.logger.Error("it is not possible to reach Quorum due to lack of nodes. Retrying...")
 		time.Sleep(sleepTime)
 	}
+	return nil
 }
