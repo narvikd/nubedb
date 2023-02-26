@@ -3,6 +3,7 @@ package fsm
 import (
 	"encoding/json"
 	"errors"
+	"github.com/dgraph-io/badger/v3"
 	"github.com/narvikd/errorskit"
 )
 
@@ -43,4 +44,19 @@ func (dbFSM DatabaseFSM) Get(k string) (any, error) {
 	}
 
 	return result, nil
+}
+
+func (dbFSM DatabaseFSM) GetKeys() []string {
+	var keys []string
+	txn := dbFSM.db.NewTransaction(false)
+	defer txn.Discard()
+
+	it := txn.NewIterator(badger.DefaultIteratorOptions)
+	defer it.Close()
+
+	for it.Rewind(); it.Valid(); it.Next() {
+		key := it.Item().KeyCopy(nil)
+		keys = append(keys, string(key))
+	}
+	return keys
 }

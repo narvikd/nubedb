@@ -31,6 +31,14 @@ func (a *ApiCtx) storeGet(fiberCtx *fiber.Ctx) error {
 	return jsonresponse.OK(fiberCtx, "data retrieved successfully", value)
 }
 
+func (a *ApiCtx) storeGetKeys(fiberCtx *fiber.Ctx) error {
+	keys := a.Node.FSM.GetKeys()
+	if len(keys) <= 0 {
+		return jsonresponse.NotFound(fiberCtx, "no keys in DB")
+	}
+	return jsonresponse.OK(fiberCtx, "data retrieved successfully", keys)
+}
+
 func (a *ApiCtx) storeSet(fiberCtx *fiber.Ctx) error {
 	const operationType = "SET"
 
@@ -125,5 +133,13 @@ func (a *ApiCtx) restoreBackup(fiberCtx *fiber.Ctx) error {
 		return jsonresponse.ServerError(fiberCtx, errCluster.Error())
 	}
 
-	return jsonresponse.OK(fiberCtx, "data restored successfully", "")
+	keys := a.Node.FSM.GetKeys()
+	if len(keys) <= 0 {
+		return jsonresponse.NotFound(fiberCtx, "no keys were found in the DB after the restoring the backup file")
+	}
+
+	return fiberCtx.Status(fiber.StatusOK).JSON(&fiber.Map{
+		"message": "data restored successfully",
+		"keys":    keys,
+	})
 }
