@@ -73,6 +73,7 @@ To get a full backup of the DB, you can visit or send a `GET` request to `store/
 
 ##### Restore
 To restore a backup of the DB, you can send a `POST` request to `store/restore`:
+
 First ensure you are sending a `form-data` with a key `backup` as a `file`:
 <img width="1920" alt="Screenshot 2023-02-26 at 19 46 49" src="https://user-images.githubusercontent.com/84069271/221430396-baf0978f-b40a-4e8e-8e48-c096917ca9f7.png">
 
