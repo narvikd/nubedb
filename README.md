@@ -43,7 +43,7 @@ To check the consensus state, you can send a `GET` request to `consensus`:
 <img width="1920" src="https://user-images.githubusercontent.com/84069271/219970339-a24c7be6-474a-4837-9ab0-f96d8fec3d19.png">
 
 ##### Healthcheck
-To check consensus health, you can send a `GET` request to `health`. It will return only a status code for simplicity:
+To check the consensus health, you can send a `GET` request to `health`. It will return only a status code for simplicity:
 <img width="1920" src="https://user-images.githubusercontent.com/84069271/219970383-13b308ee-2c97-4850-bfdd-66793dfbd036.png">
 
 
