@@ -23,6 +23,8 @@ NubeDB is a simple distributed key-value database that uses the Raft consensus a
       * [Store](#store)
       * [Get](#get)
       * [Delete](#delete)
+      * [Backup](#backup)
+      * [Restore](#restore)
 
 
 ## Getting started
@@ -69,7 +71,7 @@ To get a full backup of the DB, you can visit or send a `GET` request to `store/
 <img width="1920" alt="Screenshot 2023-02-26 at 19 39 29" src="https://user-images.githubusercontent.com/84069271/221430304-6f109e26-be8c-4870-ba59-061d99d4b632.png">
 
 
-##### RESTORE
+##### Restore
 To restore a backup of the DB, you can send a `POST` request to `store/restore`:
 First ensure you are sending a `form-data` with a key `backup` as a `file`:
 <img width="1920" alt="Screenshot 2023-02-26 at 19 46 49" src="https://user-images.githubusercontent.com/84069271/221430396-baf0978f-b40a-4e8e-8e48-c096917ca9f7.png">
