@@ -63,3 +63,15 @@ To retrieve all keys in the DB, you can send a `GET` request to `store/keys`:
 ##### Delete
 To delete a key, you can send a `DELETE` request to `store`:
 <img width="1920" src="https://user-images.githubusercontent.com/84069271/219970470-3928d7e6-be00-405e-b3a0-e8c1fd999a7d.png">
+
+##### Backup
+To get a full backup of the DB, you can visit or send a `GET` request to `store/backup`:
+`EDITME`
+
+##### RESTORE
+To restore a backup of the DB, you can send a `POST` request to `store/restore`:
+First ensure you are sending a `form-data` with a key `backup` as a `file`:
+`EDITME`
+
+Example:
+`EDITME`
