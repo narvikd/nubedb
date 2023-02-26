@@ -57,7 +57,8 @@ To retrieve a value for a key, you can send a `GET` request to `store`:
 
 ##### GetKeys
 To retrieve all keys in the DB, you can send a `GET` request to `store/keys`:
-`EDITME`
+<img width="1920" src="https://user-images.githubusercontent.com/84069271/221429650-ce774f1d-c8d1-4525-88a1-6420c69c67e2.png">
+
 
 ##### Delete
 To delete a key, you can send a `DELETE` request to `store`:
