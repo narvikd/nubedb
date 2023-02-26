@@ -32,7 +32,7 @@ func NewApp(cfg config.Config) *App {
 		ErrorHandler: func(ctx *fiber.Ctx, err error) error {
 			return fiberparser.RegisterErrorHandler(ctx, err)
 		},
-		BodyLimit: 5 * 1024 * 1024, // In MB
+		BodyLimit: 200 * 1024 * 1024, // In MB
 	})
 
 	return &App{
