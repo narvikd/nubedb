@@ -68,15 +68,15 @@ To delete a key, you can send a `DELETE` request to `store`:
 
 ##### Backup
 To get a full backup of the DB, you can visit or send a `GET` request to `store/backup`:
-<img width="1920" alt="Screenshot 2023-02-26 at 19 39 29" src="https://user-images.githubusercontent.com/84069271/221430304-6f109e26-be8c-4870-ba59-061d99d4b632.png">
+<img width="1920" src="https://user-images.githubusercontent.com/84069271/221430304-6f109e26-be8c-4870-ba59-061d99d4b632.png">
 
 
 ##### Restore
 To restore a backup of the DB, you can send a `POST` request to `store/restore`:
 
 First ensure you are sending a `form-data` with a key `backup` as a `file`:
-<img width="1920" alt="Screenshot 2023-02-26 at 19 46 49" src="https://user-images.githubusercontent.com/84069271/221430396-baf0978f-b40a-4e8e-8e48-c096917ca9f7.png">
+<img width="1920" src="https://user-images.githubusercontent.com/84069271/221430396-baf0978f-b40a-4e8e-8e48-c096917ca9f7.png">
 
 
 Example:
-<img width="1920" alt="Screenshot 2023-02-26 at 19 44 19" src="https://user-images.githubusercontent.com/84069271/221430404-51369a6c-e99d-40a1-bbae-56514b1d4c1b.png">
+<img width="1920" src="https://user-images.githubusercontent.com/84069271/221430404-51369a6c-e99d-40a1-bbae-56514b1d4c1b.png">
