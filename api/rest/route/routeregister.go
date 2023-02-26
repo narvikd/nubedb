@@ -31,6 +31,8 @@ func Register(app *app.App) {
 
 func routes(app *fiber.App, route *ApiCtx) {
 	app.Get("/store", route.storeGet)
+	app.Get("/store/keys", route.storeGetKeys)
+
 	app.Post("/store", route.storeSet)
 	app.Delete("/store", route.storeDelete)
 
