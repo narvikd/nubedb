@@ -110,8 +110,24 @@ func newFSM(dir string) (*fsm.DatabaseFSM, error) {
 	if err != nil {
 		return nil, errorskit.Wrap(err, "couldn't open badgerDB")
 	}
-
+	go badgerGC(db)
 	return fsm.New(db), nil
+}
+
+func badgerGC(db *badger.DB) {
+	const (
+		gcCycle      = 15 * time.Minute
+		discardRatio = 0.5
+	)
+	ticker := time.NewTicker(gcCycle)
+	defer ticker.Stop()
+	for range ticker.C {
+	again:
+		err := db.RunValueLogGC(discardRatio)
+		if err == nil {
+			goto again
+		}
+	}
 }
 
 // setRaft initializes and starts a new consensus instance using the node's configuration.
