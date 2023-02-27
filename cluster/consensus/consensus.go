@@ -12,6 +12,7 @@ import (
 	"nubedb/cluster/consensus/fsm"
 	"nubedb/discover"
 	"nubedb/internal/config"
+	"nubedb/pkg/filterwriter"
 	"os"
 	"path"
 	"path/filepath"
@@ -109,7 +110,12 @@ func (n *Node) setRaft() error {
 		timeout            = 10 * time.Second
 		maxConnectionsPool = 10
 		retainedSnapshots  = 3
-		// Note: This defaults to a very high value and can cause spam to disk if it's too low.
+
+		// SnapshotThreshold controls how many outstanding logs there must be before
+		// we perform a snapshot. This is to prevent excessive snapshotting by
+		// replaying a small set of logs instead. The value passed here is the initial
+		// setting used. This can be tuned during operation using ReloadConfig.
+		// Note: This defaults to a very high value and can cause spam to disk if it's set low.
 		// TODO: Find appropriate value
 		snapshotThreshold = 2
 	)
@@ -166,6 +172,22 @@ func (n *Node) setRaft() error {
 	// Register the observers
 	n.registerObservers()
 	return nil
+}
+
+func (n *Node) setConsensusLogger(cfg *raft.Config) {
+	// Setups a filter-writer which suppresses raft's errors that should have been debug errors instead
+	const errCannotSnapshotNow = "snapshot now, wait until the configuration entry at"
+	filters := []string{raft.ErrNothingNewToSnapshot.Error(), errCannotSnapshotNow}
+	fw := filterwriter.New(os.Stderr, filters)
+
+	l := hclog.New(&hclog.LoggerOptions{
+		Name:   "consensus",
+		Level:  hclog.LevelFromString("DEBUG"),
+		Output: fw,
+	})
+	n.logger = l
+	cfg.LogOutput = fw
+	cfg.Logger = l
 }
 
 // startConsensus boots up the consensus process for the node, by adding it to an existing or new cluster.
