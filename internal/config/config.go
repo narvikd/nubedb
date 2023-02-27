@@ -15,7 +15,6 @@ const (
 	GrpcPort      = 3003
 )
 
-// TODO: Refactor
 type NodeCfg struct {
 	ID                 string
 	ApiPort            int

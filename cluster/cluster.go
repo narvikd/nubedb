@@ -106,8 +106,6 @@ func IsLeader(addr string) (bool, error) {
 }
 
 func ConsensusJoin(nodeID string, nodeConsensusAddr string, leaderGrpcAddr string) error {
-	// TODO: Maybe add a message to know one node is contacting the other for this operation
-
 	conn, errConn := protoclient.NewConnection(leaderGrpcAddr)
 	if errConn != nil {
 		return errConn
@@ -126,8 +124,6 @@ func ConsensusJoin(nodeID string, nodeConsensusAddr string, leaderGrpcAddr strin
 }
 
 func ConsensusRemove(nodeID string, leaderGrpcAddr string) error {
-	// TODO: Maybe add a message to know one node is contacting the other for this operation
-
 	conn, errConn := protoclient.NewConnection(leaderGrpcAddr)
 	if errConn != nil {
 		return errConn

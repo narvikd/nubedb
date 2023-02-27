@@ -118,7 +118,7 @@ func (n *Node) registerRequestVoteRequestChan() {
 	}()
 }
 
-// TODO: Maybe this will block because it isn't in a go routine?
+// Be careful as this blocks if it isn't ran in a go func
 func (n *Node) checkIfNodeNeedsUnblock() {
 	const timeout = 1 * time.Minute
 	_, leaderID := n.Consensus.LeaderWithID()

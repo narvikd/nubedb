@@ -80,8 +80,10 @@ func SearchNodes(currentNode string) ([]string, error) {
 			host = strings.ReplaceAll(host, ".", "")
 			hosts[host] = true
 		}
+
 		// Wait for 100 milliseconds before trying again to not spam/have some space between requests.
-		time.Sleep(100 * time.Millisecond) // TODO: Try to refactor this
+		// TODO: Try to refactor this
+		time.Sleep(100 * time.Millisecond)
 	}
 
 	// Convert the map to a slice of strings and exclude the current node.
