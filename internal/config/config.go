@@ -50,7 +50,7 @@ func New() (Config, error) {
 		ConsensusAddress:   MakeConsensusAddr(hostname),
 		GrpcPort:           GrpcPort,
 		GrpcAddress:        MakeGrpcAddress(hostname),
-		FSMPerformanceMode: strings.ToLower(os.Getenv("FSM_PERFORMANCE")) == "true", // TODO: Add in docs what this is
+		FSMPerformanceMode: strings.ToLower(os.Getenv("FSM_PERFORMANCE")) == "true",
 	}
 	return Config{CurrentNode: nodeCfg}, nil
 }
