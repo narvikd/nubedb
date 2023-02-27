@@ -2,7 +2,6 @@ package consensus
 
 import (
 	"errors"
-	"github.com/dgraph-io/badger/v3"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/raft-boltdb/v2"
@@ -80,7 +79,7 @@ func newNode(id string, address string) (*Node, error) {
 	dir := path.Join("data", id)
 	storageDir := path.Join(dir, "localdb")
 
-	f, errDB := newFSM(storageDir)
+	f, errDB := fsm.New(storageDir)
 	if errDB != nil {
 		return nil, errDB
 	}
@@ -102,32 +101,6 @@ func newNode(id string, address string) (*Node, error) {
 	}
 
 	return n, nil
-}
-
-// newFSM initializes a new fsm
-func newFSM(dir string) (*fsm.DatabaseFSM, error) {
-	db, err := badger.Open(badger.DefaultOptions(dir))
-	if err != nil {
-		return nil, errorskit.Wrap(err, "couldn't open badgerDB")
-	}
-	go badgerGC(db)
-	return fsm.New(db), nil
-}
-
-func badgerGC(db *badger.DB) {
-	const (
-		gcCycle      = 15 * time.Minute
-		discardRatio = 0.5
-	)
-	ticker := time.NewTicker(gcCycle)
-	defer ticker.Stop()
-	for range ticker.C {
-	again:
-		err := db.RunValueLogGC(discardRatio)
-		if err == nil {
-			goto again
-		}
-	}
 }
 
 // setRaft initializes and starts a new consensus instance using the node's configuration.
