@@ -274,7 +274,7 @@ func (n *Node) waitForClusterReadiness() error {
 			break
 		}
 
-		leader, errLeader := discover.SearchLeader(n.ID)
+		_, errLeader := discover.SearchLeader(n.ID)
 		if errLeader != nil {
 			msg := fmt.Sprintf("it isn't possible to reach Quorum due to lack of nodes. "+
 				"Tried to search for a leader to join an existent consensus. "+
@@ -283,18 +283,12 @@ func (n *Node) waitForClusterReadiness() error {
 			)
 			n.logger.Error(msg)
 			n.logger.Error("it isn't possible to reach Quorum due to lack of nodes and leader not available. Retrying...")
+			time.Sleep(sleepTime)
 			continue
 		}
 
-		errJoin := cluster.ConsensusJoin(n.ID, config.MakeConsensusAddr(n.ID), config.MakeGrpcAddress(leader))
-		if errJoin != nil {
-			n.logger.Error("couldn't join existing consensus: " + errJoin.Error())
-		} else {
-			n.logger.Info("joined existing consensus @ " + leader)
-			break
-		}
-
-		time.Sleep(sleepTime)
+		n.logger.Warn("existent leader found, reinstalling....")
+		n.ReinstallNode()
 	}
 	return nil
 }
