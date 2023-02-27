@@ -2,6 +2,7 @@ package consensus
 
 import (
 	"errors"
+	"fmt"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/raft-boltdb/v2"
@@ -267,11 +268,32 @@ func (n *Node) waitForClusterReadiness() error {
 		if currentTry > maxRetryCount {
 			return errors.New("quorum retry max reached")
 		}
+
 		if n.IsQuorumPossible(true) {
 			n.logger.Info("quorum possible.")
 			break
 		}
-		n.logger.Error("it is not possible to reach Quorum due to lack of nodes. Retrying...")
+
+		leader, errLeader := discover.SearchLeader(n.ID)
+		if errLeader != nil {
+			msg := fmt.Sprintf("it isn't possible to reach Quorum due to lack of nodes. "+
+				"Tried to search for a leader to join an existent consensus. "+
+				"Leader not found: %v",
+				errLeader.Error(),
+			)
+			n.logger.Error(msg)
+			n.logger.Error("it isn't possible to reach Quorum due to lack of nodes and leader not available. Retrying...")
+			continue
+		}
+
+		errJoin := cluster.ConsensusJoin(n.ID, config.MakeConsensusAddr(n.ID), config.MakeGrpcAddress(leader))
+		if errJoin != nil {
+			n.logger.Error("couldn't join existing consensus: " + errJoin.Error())
+		} else {
+			n.logger.Info("joined existing consensus @ " + leader)
+			break
+		}
+
 		time.Sleep(sleepTime)
 	}
 	return nil
