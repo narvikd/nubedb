@@ -159,6 +159,8 @@ func GetAliveNodes(consensus *raft.Raft, currentNodeID string) []raft.Server {
 	return alive
 }
 
+// RequestNodeReinstall is called to prevent a case where a node has been stuck way too long
+// incrementing terms and will cause problems with the cluster.
 func RequestNodeReinstall(nodeGrpcAddr string) error {
 	conn, errConn := protoclient.NewConnection(nodeGrpcAddr)
 	if errConn != nil {
