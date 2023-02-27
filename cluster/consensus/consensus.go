@@ -61,7 +61,7 @@ func (n *Node) SetUnBlockingInProgress(b bool) {
 
 // New initializes and returns a new Node
 func New(cfg config.Config) (*Node, error) {
-	n, errNode := newNode(cfg.CurrentNode.ID, cfg.CurrentNode.ConsensusAddress)
+	n, errNode := newNode(cfg)
 	if errNode != nil {
 		return nil, errNode
 	}
@@ -75,19 +75,19 @@ func New(cfg config.Config) (*Node, error) {
 }
 
 // newNode initializes and returns a new Node with the given id and address
-func newNode(id string, address string) (*Node, error) {
-	dir := path.Join("data", id)
+func newNode(cfg config.Config) (*Node, error) {
+	dir := path.Join("data", cfg.CurrentNode.ID)
 	storageDir := path.Join(dir, "localdb")
 
-	f, errDB := fsm.New(storageDir)
+	f, errDB := fsm.New(storageDir, cfg.CurrentNode.FSMPerformanceMode)
 	if errDB != nil {
 		return nil, errDB
 	}
 
 	n := &Node{
 		FSM:              f,
-		ID:               id,
-		ConsensusAddress: address,
+		ID:               cfg.CurrentNode.ID,
+		ConsensusAddress: cfg.CurrentNode.ConsensusAddress,
 		MainDir:          dir,
 		storageDir:       storageDir,
 		snapshotsDir:     dir, // This isn't a typo, it will create a snapshots dir inside the dir automatically

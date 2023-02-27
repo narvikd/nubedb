@@ -136,16 +136,21 @@ func (s snapshot) Release() {}
 // New creates a new instance of DatabaseFSM.
 //
 // Check DatabaseFSM for more info
-func New(storageDir string) (*DatabaseFSM, error) {
-	database, err := newDB(storageDir)
+func New(storageDir string, FSMPerformanceMode bool) (*DatabaseFSM, error) {
+	database, err := newDB(storageDir, FSMPerformanceMode)
 	if err != nil {
 		return nil, err
 	}
 	return &DatabaseFSM{db: database}, nil
 }
 
-func newDB(storageDir string) (*badger.DB, error) {
-	db, err := badger.Open(badger.DefaultOptions(storageDir))
+func newDB(storageDir string, FSMPerformanceMode bool) (*badger.DB, error) {
+	badgerOpts := badger.DefaultOptions(storageDir)
+	if !FSMPerformanceMode {
+		badgerOpts.ValueLogFileSize = 64 * 1024 * 1024 // This will create a file with double that size
+	}
+
+	db, err := badger.Open(badgerOpts)
 	if err != nil {
 		return nil, errorskit.Wrap(err, "couldn't open badgerDB")
 	}
