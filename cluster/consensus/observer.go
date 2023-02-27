@@ -8,7 +8,6 @@ import (
 	"log"
 	"nubedb/cluster"
 	"nubedb/discover"
-	"nubedb/internal/config"
 	"time"
 )
 
@@ -108,7 +107,7 @@ func (n *Node) registerRequestVoteRequestChan() {
 					idRequester,
 				)
 				n.logger.Warn(msgWarn)
-				err := cluster.RequestNodeReinstall(config.MakeGrpcAddress(idRequester))
+				err := cluster.RequestNodeReinstall(discover.NewGrpcAddress(idRequester))
 				if err != nil {
 					msgErr := errorskit.Wrap(err, "couldn't reinstall foreign node")
 					n.logger.Error(msgErr.Error())
@@ -156,7 +155,7 @@ func (n *Node) ReinstallNode() {
 	if errSearchLeader != nil {
 		errorskit.FatalWrap(errSearchLeader, errPanic+"couldn't search for leader")
 	}
-	leaderGrpcAddress := config.MakeGrpcAddress(leader)
+	leaderGrpcAddress := discover.NewGrpcAddress(leader)
 
 	errConsensusRemove := cluster.ConsensusRemove(n.ID, leaderGrpcAddress)
 	if errConsensusRemove != nil {
