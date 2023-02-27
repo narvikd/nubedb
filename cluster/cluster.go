@@ -10,15 +10,13 @@ import (
 	"nubedb/api/proto"
 	"nubedb/api/proto/protoclient"
 	"nubedb/cluster/consensus/fsm"
-	"nubedb/internal/config"
-	"nubedb/pkg/resolver"
+	"nubedb/discover"
 	"time"
 )
 
 const (
 	errDBCluster      = "consensus returned an error when trying to Apply an order."
 	errGrpcTalkLeader = "failed to get an ok response from the Leader via grpc"
-	errGrpcTalkNode   = "failed to get an ok response from the Node via grpc"
 )
 
 func Execute(consensus *raft.Raft, payload *fsm.Payload) error {
@@ -63,7 +61,7 @@ func forwardLeaderFuture(consensus *raft.Raft, payload *fsm.Payload) error {
 		return errors.New("leader id was empty")
 	}
 
-	leaderGrpcAddr := config.MakeGrpcAddress(string(leaderID))
+	leaderGrpcAddr := discover.NewGrpcAddress(string(leaderID))
 	log.Printf("[proto] payload for leader received in this node, forwarding to leader '%s' @ '%s'\n",
 		leaderID, leaderGrpcAddr,
 	)
@@ -87,22 +85,6 @@ func forwardLeaderFuture(consensus *raft.Raft, payload *fsm.Payload) error {
 	}
 
 	return nil
-}
-
-// IsLeader takes a GRPC address and returns if the node reports back as a Leader
-func IsLeader(addr string) (bool, error) {
-	conn, errConn := protoclient.NewConnection(addr)
-	if errConn != nil {
-		return false, errConn
-	}
-	defer conn.Cleanup()
-
-	res, errTalk := conn.Client.IsLeader(conn.Ctx, &proto.Empty{})
-	if errTalk != nil {
-		return false, errorskit.Wrap(errTalk, errGrpcTalkNode)
-	}
-
-	return res.IsLeader, nil
 }
 
 func ConsensusJoin(nodeID string, nodeConsensusAddr string, leaderGrpcAddr string) error {
@@ -138,25 +120,6 @@ func ConsensusRemove(nodeID string, leaderGrpcAddr string) error {
 	}
 
 	return nil
-}
-
-func GetAliveNodes(consensus *raft.Raft, currentNodeID string) []raft.Server {
-	const timeout = 300 * time.Millisecond
-	var alive []raft.Server
-
-	liveCfg := consensus.GetConfiguration().Configuration()
-	cfg := liveCfg.Clone() // Clone CFG to not keep calling it in the for, in case the num of servers is very large
-	for _, srv := range cfg.Servers {
-		srvID := string(srv.ID)
-		if currentNodeID == srvID {
-			continue
-		}
-		if resolver.IsHostAlive(srvID, timeout) {
-			alive = append(alive, srv)
-		}
-	}
-
-	return alive
 }
 
 func RequestNodeReinstall(nodeGrpcAddr string) error {

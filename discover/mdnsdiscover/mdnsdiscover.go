@@ -1,14 +1,18 @@
-// Package discover is responsible for handling the discovery of nubedb nodes.
-package discover
+// Package mdnsdiscover is responsible for handling the discovery of nubedb nodes.
+package mdnsdiscover
 
 import (
 	"errors"
+	"github.com/hashicorp/raft"
 	"github.com/narvikd/errorskit"
 	"github.com/narvikd/mdns"
 	"log"
 	"net"
-	"nubedb/cluster"
+	"nubedb/api/proto"
+	"nubedb/api/proto/protoclient"
 	"nubedb/internal/config"
+	"nubedb/pkg/ipkit"
+	"nubedb/pkg/resolver"
 	"strings"
 	"sync"
 	"time"
@@ -71,7 +75,8 @@ func SearchLeader(currentNode string) (string, error) {
 	}
 
 	for _, node := range nodes {
-		leader, err := cluster.IsLeader(config.MakeGrpcAddress(node))
+		grpcAddr := ipkit.NewAddr(node, config.GrpcPort)
+		leader, err := isLeader(grpcAddr)
 		if err != nil {
 			errorskit.LogWrap(err, "couldn't contact node while searching for leaders")
 			continue
@@ -148,4 +153,38 @@ func query() ([]string, error) {
 	mu.Lock()
 	defer mu.Unlock()
 	return hosts, nil
+}
+
+// isLeader takes a GRPC address and returns if the node reports back as a Leader
+func isLeader(addr string) (bool, error) {
+	conn, errConn := protoclient.NewConnection(addr)
+	if errConn != nil {
+		return false, errConn
+	}
+	defer conn.Cleanup()
+
+	res, errTalk := conn.Client.IsLeader(conn.Ctx, &proto.Empty{})
+	if errTalk != nil {
+		return false, errorskit.Wrap(errTalk, "failed to get an ok response from the Node via grpc")
+	}
+
+	return res.IsLeader, nil
+}
+
+func GetAliveNodes(consensus *raft.Raft, currentNodeID string) []raft.Server {
+	const timeout = 300 * time.Millisecond
+	var alive []raft.Server
+
+	liveCfg := consensus.GetConfiguration().Configuration()
+	cfg := liveCfg.Clone() // Clone CFG to not keep calling it in the for, in case the num of servers is very large
+	for _, srv := range cfg.Servers {
+		srvID := string(srv.ID)
+		if currentNodeID == srvID {
+			continue
+		}
+		if resolver.IsHostAlive(srvID, timeout) {
+			alive = append(alive, srv)
+		}
+	}
+	return alive
 }
