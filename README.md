@@ -30,6 +30,14 @@ NubeDB is a simple distributed key-value database that uses the Raft consensus a
 ## Getting started
 
 #### Starting a cluster
+You can edit the ``docker-compose.yml`` to enable performance mode at the cost of having larger DB files.
+
+This is done by uncommenting :
+```bash
+environment:
+  - FSM_PERFORMANCE=true
+```
+To start the cluster:
 ```bash
 docker-compose up -d
 ```
