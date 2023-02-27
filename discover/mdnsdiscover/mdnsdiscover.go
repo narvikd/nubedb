@@ -67,7 +67,9 @@ func getIP(nodeID string) (net.IP, error) {
 // SearchLeader will return an error if a leader is not found,
 // since it skips the current node and this could be a leader.
 //
-// If the current node is as leader, it will still return an error
+// Because it skips the current node, it will still return an error.
+//
+// This is done this way to ensure this function is never called to do gRPC operations in itself.
 func SearchLeader(currentNode string) (string, error) {
 	nodes, errNodes := searchNodes(currentNode)
 	if errNodes != nil {
@@ -171,7 +173,8 @@ func isLeader(addr string) (bool, error) {
 	return res.IsLeader, nil
 }
 
-func GetAliveNodes(consensus *raft.Raft, currentNodeID string) []raft.Server {
+// SearchAliveNodes will skip currentNodeID.
+func SearchAliveNodes(consensus *raft.Raft, currentNodeID string) []raft.Server {
 	const timeout = 300 * time.Millisecond
 	var alive []raft.Server
 

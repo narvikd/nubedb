@@ -3,7 +3,7 @@ package consensus
 import (
 	"github.com/hashicorp/raft"
 	"math"
-	"nubedb/cluster"
+	"nubedb/discover"
 	"strconv"
 )
 
@@ -71,7 +71,7 @@ func (n *Node) IsQuorumPossible(preAlert bool) bool {
 	if preAlert {
 		necessaryForQuorum = math.Round(consensusNodes * percentile)
 	}
-	onlineNodes := len(cluster.GetAliveNodes(n.Consensus, n.ID))
+	onlineNodes := len(discover.SearchAliveNodes(n.Consensus, n.ID))
 
 	return float64(onlineNodes) >= necessaryForQuorum
 }
