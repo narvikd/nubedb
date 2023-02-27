@@ -5,6 +5,7 @@ import (
 	"github.com/narvikd/errorskit"
 	"nubedb/pkg/resolver"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -14,14 +15,16 @@ const (
 	GrpcPort      = 3003
 )
 
+// TODO: Refactor
 type NodeCfg struct {
-	ID               string
-	ApiPort          int
-	ApiAddress       string
-	ConsensusPort    int
-	ConsensusAddress string
-	GrpcPort         int
-	GrpcAddress      string
+	ID                 string
+	ApiPort            int
+	ApiAddress         string
+	ConsensusPort      int
+	ConsensusAddress   string
+	GrpcPort           int
+	GrpcAddress        string
+	FSMPerformanceMode bool
 }
 
 type Config struct {
@@ -38,19 +41,18 @@ func New() (Config, error) {
 	if !resolver.IsHostAlive(hostname, resolverTimeout) {
 		return Config{}, fmt.Errorf("no host found for: %s", hostname)
 	}
-	return Config{CurrentNode: NewNodeCfg(hostname)}, nil
-}
 
-func NewNodeCfg(nodeID string) NodeCfg {
-	return NodeCfg{
-		ID:               nodeID,
-		ApiPort:          ApiPort,
-		ApiAddress:       MakeApiAddr(nodeID),
-		ConsensusPort:    ConsensusPort,
-		ConsensusAddress: MakeConsensusAddr(nodeID),
-		GrpcPort:         GrpcPort,
-		GrpcAddress:      MakeGrpcAddress(nodeID),
+	nodeCfg := NodeCfg{
+		ID:                 hostname,
+		ApiPort:            ApiPort,
+		ApiAddress:         MakeApiAddr(hostname),
+		ConsensusPort:      ConsensusPort,
+		ConsensusAddress:   MakeConsensusAddr(hostname),
+		GrpcPort:           GrpcPort,
+		GrpcAddress:        MakeGrpcAddress(hostname),
+		FSMPerformanceMode: strings.ToLower(os.Getenv("FSM_PERFORMANCE")) == "true", // TODO: Add in docs what this is
 	}
+	return Config{CurrentNode: nodeCfg}, nil
 }
 
 func MakeApiAddr(nodeID string) string {
