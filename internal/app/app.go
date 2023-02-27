@@ -5,6 +5,7 @@ import (
 	"github.com/narvikd/fiberparser"
 	"log"
 	"nubedb/cluster/consensus"
+	"nubedb/discover"
 	"nubedb/internal/config"
 	"time"
 )
@@ -19,6 +20,11 @@ type App struct {
 }
 
 func NewApp(cfg config.Config) *App {
+	errDiscover := discover.SetMode(cfg.Cluster.DiscoverStrategy)
+	if errDiscover != nil {
+		log.Fatalln(errDiscover)
+	}
+
 	node, errConsensus := consensus.New(cfg)
 	if errConsensus != nil {
 		log.Fatalln(errConsensus)
