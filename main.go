@@ -6,7 +6,7 @@ import (
 	"nubedb/api/proto/protoserver"
 	"nubedb/api/rest/middleware"
 	"nubedb/api/rest/route"
-	"nubedb/discover"
+	"nubedb/discover/mdnsdiscover"
 	"nubedb/internal/app"
 	"nubedb/internal/config"
 	"runtime"
@@ -43,11 +43,13 @@ func start(a *app.App) {
 		startApiProto(a)
 	}()
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		discover.ServeAndBlock(a.Config.CurrentNode.ID, 8001)
-	}()
+	if a.Config.Cluster.DiscoverStrategy == config.DiscoverDefault {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			mdnsdiscover.ServeAndBlock(a.Config.CurrentNode.Host, 8001)
+		}()
+	}
 
 	wg.Wait()
 }
