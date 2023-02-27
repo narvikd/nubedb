@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"github.com/narvikd/errorskit"
+	"nubedb/pkg/ipkit"
 	"nubedb/pkg/resolver"
 	"os"
 	"strings"
@@ -10,43 +11,52 @@ import (
 )
 
 const (
-	ApiPort       = 3001
-	ConsensusPort = 3002
-	GrpcPort      = 3003
+	ApiPort              = 3001
+	ConsensusPort        = 3002
+	GrpcPort             = 3003
+	DiscoverDefault      = "default"
+	DiscoverNubeRegistry = "nube_registry"
 )
 
-type NodeCfg struct {
-	ID                 string
-	ApiPort            int
-	ApiAddress         string
-	ConsensusPort      int
-	ConsensusAddress   string
-	GrpcPort           int
-	GrpcAddress        string
-	FSMPerformanceMode bool
+type Config struct {
+	CurrentNode Node
+	Cluster     Cluster
 }
 
-type Config struct {
-	CurrentNode NodeCfg
+type Node struct {
+	ID               string
+	Host             string
+	ApiPort          int
+	ApiAddress       string
+	ConsensusPort    int
+	ConsensusAddress string
+	GrpcPort         int
+	GrpcAddress      string
+}
+
+type Cluster struct {
+	FSMPerformanceMode bool
+	DiscoverStrategy   string
 }
 
 func New() (Config, error) {
-	nodeID, err := newNodeID()
+	nodeHost, err := newNodeID()
 	if err != nil {
 		return Config{}, err
 	}
 
-	nodeCfg := NodeCfg{
-		ID:                 nodeID,
-		ApiPort:            ApiPort,
-		ApiAddress:         MakeApiAddr(nodeID),
-		ConsensusPort:      ConsensusPort,
-		ConsensusAddress:   MakeConsensusAddr(nodeID),
-		GrpcPort:           GrpcPort,
-		GrpcAddress:        MakeGrpcAddress(nodeID),
-		FSMPerformanceMode: strings.ToLower(os.Getenv("FSM_PERFORMANCE")) == "true",
+	nodeCfg := Node{
+		ID:               nodeHost,
+		Host:             nodeHost,
+		ApiPort:          ApiPort,
+		ApiAddress:       ipkit.NewAddr(nodeHost, ApiPort),
+		ConsensusPort:    ConsensusPort,
+		ConsensusAddress: ipkit.NewAddr(nodeHost, ConsensusPort),
+		GrpcPort:         GrpcPort,
+		GrpcAddress:      ipkit.NewAddr(nodeHost, GrpcPort),
 	}
-	return Config{CurrentNode: nodeCfg}, nil
+
+	return Config{CurrentNode: nodeCfg, Cluster: newClusterCfg()}, nil
 }
 
 func newNodeID() (string, error) {
@@ -61,18 +71,18 @@ func newNodeID() (string, error) {
 	return hostname, nil
 }
 
-func MakeApiAddr(nodeID string) string {
-	return makeAddr(nodeID, ApiPort)
-}
+func newClusterCfg() Cluster {
+	discoverStrategy := strings.ToLower(os.Getenv("DISCOVER_STRATEGY"))
+	fsmPerformance := strings.ToLower(os.Getenv("FSM_PERFORMANCE"))
 
-func MakeConsensusAddr(nodeID string) string {
-	return makeAddr(nodeID, ConsensusPort)
-}
+	clusterCfg := Cluster{
+		FSMPerformanceMode: fsmPerformance == "true",
+		DiscoverStrategy:   DiscoverDefault,
+	}
 
-func MakeGrpcAddress(nodeID string) string {
-	return makeAddr(nodeID, GrpcPort)
-}
+	if discoverStrategy == DiscoverNubeRegistry {
+		clusterCfg.DiscoverStrategy = DiscoverNubeRegistry
+	}
 
-func makeAddr(host string, port int) string {
-	return fmt.Sprintf("%s:%v", host, port)
+	return clusterCfg
 }
