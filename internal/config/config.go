@@ -31,27 +31,34 @@ type Config struct {
 }
 
 func New() (Config, error) {
-	const resolverTimeout = 300 * time.Millisecond
-	hostname, errHostname := os.Hostname()
-	if errHostname != nil {
-		return Config{}, errorskit.Wrap(errHostname, "couldn't get hostname on Config generation")
-	}
-
-	if !resolver.IsHostAlive(hostname, resolverTimeout) {
-		return Config{}, fmt.Errorf("no host found for: %s", hostname)
+	nodeID, err := newNodeID()
+	if err != nil {
+		return Config{}, err
 	}
 
 	nodeCfg := NodeCfg{
-		ID:                 hostname,
+		ID:                 nodeID,
 		ApiPort:            ApiPort,
-		ApiAddress:         MakeApiAddr(hostname),
+		ApiAddress:         MakeApiAddr(nodeID),
 		ConsensusPort:      ConsensusPort,
-		ConsensusAddress:   MakeConsensusAddr(hostname),
+		ConsensusAddress:   MakeConsensusAddr(nodeID),
 		GrpcPort:           GrpcPort,
-		GrpcAddress:        MakeGrpcAddress(hostname),
+		GrpcAddress:        MakeGrpcAddress(nodeID),
 		FSMPerformanceMode: strings.ToLower(os.Getenv("FSM_PERFORMANCE")) == "true",
 	}
 	return Config{CurrentNode: nodeCfg}, nil
+}
+
+func newNodeID() (string, error) {
+	const resolverTimeout = 300 * time.Millisecond
+	hostname, errHostname := os.Hostname()
+	if errHostname != nil {
+		return "", errorskit.Wrap(errHostname, "couldn't get hostname on Config generation")
+	}
+	if !resolver.IsHostAlive(hostname, resolverTimeout) {
+		return "", fmt.Errorf("no host found for: %s", hostname)
+	}
+	return hostname, nil
 }
 
 func MakeApiAddr(nodeID string) string {
