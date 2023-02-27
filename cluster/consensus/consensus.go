@@ -80,7 +80,7 @@ func newNode(cfg config.Config) (*Node, error) {
 	dir := path.Join("data", cfg.CurrentNode.ID)
 	storageDir := path.Join(dir, "localdb")
 
-	f, errDB := fsm.New(storageDir, cfg.CurrentNode.FSMPerformanceMode)
+	f, errDB := fsm.New(storageDir, cfg.Cluster.FSMPerformanceMode)
 	if errDB != nil {
 		return nil, errDB
 	}
@@ -244,14 +244,14 @@ func joinNodeToExistingConsensus(nodeID string) error {
 	if errSearchLeader != nil {
 		return errSearchLeader
 	}
-	return cluster.ConsensusJoin(nodeID, config.MakeConsensusAddr(nodeID), config.MakeGrpcAddress(leaderID))
+	return cluster.ConsensusJoin(nodeID, discover.NewConsensusAddr(nodeID), discover.NewGrpcAddress(leaderID))
 }
 
 func newConsensusServerList(nodeID string) []raft.Server {
 	return []raft.Server{
 		{
 			ID:      raft.ServerID(nodeID),
-			Address: raft.ServerAddress(config.MakeConsensusAddr(nodeID)),
+			Address: raft.ServerAddress(discover.NewConsensusAddr(nodeID)),
 		},
 	}
 }
