@@ -12,13 +12,17 @@ services:
       - '3001:3001'
     volumes:
       - ./data:/app/data
+#    environment:
+#      - FSM_PERFORMANCE=true
     restart: on-failure
   node:
     image: narvikd/nubedb:latest
     volumes:
       - ./data:/app/data
+    environment:
+      - FSM_PERFORMANCE=true
+    restart: on-failure
     depends_on:
       - bootstrap-node
-    restart: on-failure
     deploy:
       replicas: 4

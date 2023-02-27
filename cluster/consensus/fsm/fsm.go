@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/raft"
 	"github.com/narvikd/errorskit"
 	"io"
+	"time"
 )
 
 // DatabaseFSM represents the finite state machine implementation for the database
@@ -32,13 +33,6 @@ type Payload struct {
 type ApplyRes struct {
 	Data  any
 	Error error
-}
-
-// New creates a new instance of DatabaseFSM.
-//
-// Check DatabaseFSM for more info
-func New(db *badger.DB) *DatabaseFSM {
-	return &DatabaseFSM{db: db}
 }
 
 // Apply processes a Raft log entry
@@ -138,3 +132,44 @@ func (s snapshot) Persist(_ raft.SnapshotSink) error {
 //
 // In the case of nubedb, the Release method is empty because Persist does not acquire any resources.
 func (s snapshot) Release() {}
+
+// New creates a new instance of DatabaseFSM.
+//
+// Check DatabaseFSM for more info
+func New(storageDir string, FSMPerformanceMode bool) (*DatabaseFSM, error) {
+	database, err := newDB(storageDir, FSMPerformanceMode)
+	if err != nil {
+		return nil, err
+	}
+	return &DatabaseFSM{db: database}, nil
+}
+
+func newDB(storageDir string, FSMPerformanceMode bool) (*badger.DB, error) {
+	badgerOpts := badger.DefaultOptions(storageDir)
+	if !FSMPerformanceMode {
+		badgerOpts.ValueLogFileSize = 64 * 1024 * 1024 // This will create a file with double that size
+	}
+
+	db, err := badger.Open(badgerOpts)
+	if err != nil {
+		return nil, errorskit.Wrap(err, "couldn't open badgerDB")
+	}
+	go badgerGC(db)
+	return db, nil
+}
+
+func badgerGC(db *badger.DB) {
+	const (
+		gcCycle      = 15 * time.Minute
+		discardRatio = 0.5
+	)
+	ticker := time.NewTicker(gcCycle)
+	defer ticker.Stop()
+	for range ticker.C {
+	again:
+		err := db.RunValueLogGC(discardRatio)
+		if err == nil {
+			goto again
+		}
+	}
+}

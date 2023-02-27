@@ -2,7 +2,6 @@ package consensus
 
 import (
 	"errors"
-	"github.com/dgraph-io/badger/v3"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/raft-boltdb/v2"
@@ -62,7 +61,7 @@ func (n *Node) SetUnBlockingInProgress(b bool) {
 
 // New initializes and returns a new Node
 func New(cfg config.Config) (*Node, error) {
-	n, errNode := newNode(cfg.CurrentNode.ID, cfg.CurrentNode.ConsensusAddress)
+	n, errNode := newNode(cfg)
 	if errNode != nil {
 		return nil, errNode
 	}
@@ -76,19 +75,19 @@ func New(cfg config.Config) (*Node, error) {
 }
 
 // newNode initializes and returns a new Node with the given id and address
-func newNode(id string, address string) (*Node, error) {
-	dir := path.Join("data", id)
+func newNode(cfg config.Config) (*Node, error) {
+	dir := path.Join("data", cfg.CurrentNode.ID)
 	storageDir := path.Join(dir, "localdb")
 
-	f, errDB := newFSM(storageDir)
+	f, errDB := fsm.New(storageDir, cfg.CurrentNode.FSMPerformanceMode)
 	if errDB != nil {
 		return nil, errDB
 	}
 
 	n := &Node{
 		FSM:              f,
-		ID:               id,
-		ConsensusAddress: address,
+		ID:               cfg.CurrentNode.ID,
+		ConsensusAddress: cfg.CurrentNode.ConsensusAddress,
 		MainDir:          dir,
 		storageDir:       storageDir,
 		snapshotsDir:     dir, // This isn't a typo, it will create a snapshots dir inside the dir automatically
@@ -102,32 +101,6 @@ func newNode(id string, address string) (*Node, error) {
 	}
 
 	return n, nil
-}
-
-// newFSM initializes a new fsm
-func newFSM(dir string) (*fsm.DatabaseFSM, error) {
-	db, err := badger.Open(badger.DefaultOptions(dir))
-	if err != nil {
-		return nil, errorskit.Wrap(err, "couldn't open badgerDB")
-	}
-	go badgerGC(db)
-	return fsm.New(db), nil
-}
-
-func badgerGC(db *badger.DB) {
-	const (
-		gcCycle      = 15 * time.Minute
-		discardRatio = 0.5
-	)
-	ticker := time.NewTicker(gcCycle)
-	defer ticker.Stop()
-	for range ticker.C {
-	again:
-		err := db.RunValueLogGC(discardRatio)
-		if err == nil {
-			goto again
-		}
-	}
 }
 
 // setRaft initializes and starts a new consensus instance using the node's configuration.
