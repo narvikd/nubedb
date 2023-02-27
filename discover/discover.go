@@ -60,8 +60,32 @@ func getIP(nodeID string) (net.IP, error) {
 	return net.ParseIP(hosts[0]), nil
 }
 
-// SearchNodes returns a list of all discovered nodes, excluding the one passed as a parameter.
-func SearchNodes(currentNode string) ([]string, error) {
+// SearchLeader will return an error if a leader is not found,
+// since it skips the current node and this could be a leader.
+//
+// If the current node is as leader, it will still return an error
+func SearchLeader(currentNode string) (string, error) {
+	nodes, errNodes := searchNodes(currentNode)
+	if errNodes != nil {
+		return "", errNodes
+	}
+
+	for _, node := range nodes {
+		leader, err := cluster.IsLeader(config.MakeGrpcAddress(node))
+		if err != nil {
+			errorskit.LogWrap(err, "couldn't contact node while searching for leaders")
+			continue
+		}
+		if leader {
+			return node, nil
+		}
+	}
+
+	return "", errors.New(ErrLeaderNotFound)
+}
+
+// searchNodes returns a list of all discovered nodes, excluding the one passed as a parameter.
+func searchNodes(currentNode string) ([]string, error) {
 	// map to store the discovered nodes.
 	hosts := make(map[string]bool)
 	var lastError error
@@ -124,28 +148,4 @@ func query() ([]string, error) {
 	mu.Lock()
 	defer mu.Unlock()
 	return hosts, nil
-}
-
-// SearchLeader will return an error if a leader is not found,
-// since it skips the current node and this could be a leader.
-//
-// If the current node is as leader, it will still return an error
-func SearchLeader(currentNode string) (string, error) {
-	nodes, errNodes := SearchNodes(currentNode)
-	if errNodes != nil {
-		return "", errNodes
-	}
-
-	for _, node := range nodes {
-		leader, err := cluster.IsLeader(config.MakeGrpcAddress(node))
-		if err != nil {
-			errorskit.LogWrap(err, "couldn't contact node while searching for leaders")
-			continue
-		}
-		if leader {
-			return node, nil
-		}
-	}
-
-	return "", errors.New(ErrLeaderNotFound)
 }
