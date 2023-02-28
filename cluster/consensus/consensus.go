@@ -257,11 +257,11 @@ func newConsensusServerList(nodeID string) []raft.Server {
 }
 
 func (n *Node) waitForClusterReadiness() error {
-	currentTry := 0
 	const (
 		maxRetryCount = 7
 		sleepTime     = 1 * time.Minute
 	)
+	currentTry := 0
 	for {
 		currentTry++
 		if currentTry > maxRetryCount {
