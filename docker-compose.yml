@@ -14,6 +14,7 @@ services:
       - ./data:/app/data
 #    environment:
 #      - FSM_PERFORMANCE=true
+#      - DISCOVER_STRATEGY=default
     restart: on-failure
   node:
     image: narvikd/nubedb:latest
@@ -21,6 +22,7 @@ services:
       - ./data:/app/data
 #    environment:
 #      - FSM_PERFORMANCE=true
+#      - DISCOVER_STRATEGY=default
     restart: on-failure
     depends_on:
       - bootstrap-node
