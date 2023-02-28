@@ -9,7 +9,7 @@ NubeDB is a simple distributed key-value database that uses the Raft consensus a
 * Automatic fail-over and recovery if any of the nodes go down.
   * Limitations:
     * The system needs 1 leader and 2 nodes to operate correctly.
-    * It can go down as far as 1 leader and 1 node, but there are no warranties that it will be stable.
+    * Instability happens when the cluster goes as far as 1 leader and 1 node, this situation should always be avoided.
 * TODO:
   * True auto-scaling, in which a number of arbitrary nodes can be removed when the whole cluster is down, and the system can still reach a quorum on startup.
 
