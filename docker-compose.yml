@@ -19,8 +19,8 @@ services:
     image: narvikd/nubedb:latest
     volumes:
       - ./data:/app/data
-    environment:
-      - FSM_PERFORMANCE=true
+#    environment:
+#      - FSM_PERFORMANCE=true
     restart: on-failure
     depends_on:
       - bootstrap-node
