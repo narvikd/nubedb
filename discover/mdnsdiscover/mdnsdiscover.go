@@ -55,15 +55,6 @@ func ServeAndBlock(nodeID string, port int) {
 	select {}
 }
 
-func getIP(nodeID string) (net.IP, error) {
-	hosts, errLookup := net.LookupHost(nodeID)
-	if errLookup != nil {
-		return nil, errorskit.Wrap(errLookup, "couldn't lookup host")
-	}
-
-	return net.ParseIP(hosts[0]), nil
-}
-
 // SearchLeader will return an error if a leader is not found,
 // since it skips the current node and this could be a leader.
 //
@@ -89,6 +80,34 @@ func SearchLeader(currentNode string) (string, error) {
 	}
 
 	return "", errors.New(ErrLeaderNotFound)
+}
+
+// SearchAliveNodes will skip currentNodeID.
+func SearchAliveNodes(consensus *raft.Raft, currentNodeID string) []raft.Server {
+	const timeout = 300 * time.Millisecond
+	var alive []raft.Server
+
+	liveCfg := consensus.GetConfiguration().Configuration()
+	cfg := liveCfg.Clone() // Clone CFG to not keep calling it in the for, in case the num of servers is very large
+	for _, srv := range cfg.Servers {
+		srvID := string(srv.ID)
+		if currentNodeID == srvID {
+			continue
+		}
+		if resolver.IsHostAlive(srvID, timeout) {
+			alive = append(alive, srv)
+		}
+	}
+	return alive
+}
+
+func getIP(nodeID string) (net.IP, error) {
+	hosts, errLookup := net.LookupHost(nodeID)
+	if errLookup != nil {
+		return nil, errorskit.Wrap(errLookup, "couldn't lookup host")
+	}
+
+	return net.ParseIP(hosts[0]), nil
 }
 
 // searchNodes returns a list of all discovered nodes, excluding the one passed as a parameter.
@@ -171,23 +190,4 @@ func isLeader(addr string) (bool, error) {
 	}
 
 	return res.IsLeader, nil
-}
-
-// SearchAliveNodes will skip currentNodeID.
-func SearchAliveNodes(consensus *raft.Raft, currentNodeID string) []raft.Server {
-	const timeout = 300 * time.Millisecond
-	var alive []raft.Server
-
-	liveCfg := consensus.GetConfiguration().Configuration()
-	cfg := liveCfg.Clone() // Clone CFG to not keep calling it in the for, in case the num of servers is very large
-	for _, srv := range cfg.Servers {
-		srvID := string(srv.ID)
-		if currentNodeID == srvID {
-			continue
-		}
-		if resolver.IsHostAlive(srvID, timeout) {
-			alive = append(alive, srv)
-		}
-	}
-	return alive
 }
