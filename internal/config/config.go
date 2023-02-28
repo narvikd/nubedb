@@ -11,11 +11,10 @@ import (
 )
 
 const (
-	ApiPort              = 3001
-	ConsensusPort        = 3002
-	GrpcPort             = 3003
-	DiscoverDefault      = "default"
-	DiscoverNubeRegistry = "nube_registry"
+	ApiPort         = 3001
+	ConsensusPort   = 3002
+	GrpcPort        = 3003
+	DiscoverDefault = "default"
 )
 
 type Config struct {
@@ -72,16 +71,12 @@ func newNodeID() (string, error) {
 }
 
 func newClusterCfg() Cluster {
-	discoverStrategy := strings.ToLower(os.Getenv("DISCOVER_STRATEGY"))
+	//discoverStrategy := strings.ToLower(os.Getenv("DISCOVER_STRATEGY"))
 	fsmPerformance := strings.ToLower(os.Getenv("FSM_PERFORMANCE"))
 
 	clusterCfg := Cluster{
 		FSMPerformanceMode: fsmPerformance == "true",
 		DiscoverStrategy:   DiscoverDefault,
-	}
-
-	if discoverStrategy == DiscoverNubeRegistry {
-		clusterCfg.DiscoverStrategy = DiscoverNubeRegistry
 	}
 
 	return clusterCfg
