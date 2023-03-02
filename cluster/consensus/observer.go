@@ -46,7 +46,7 @@ func (n *Node) registerNodeChangesChan() {
 		// Blocks until something enters the channel
 		for o := range n.chans.nodeChanges {
 			n.logger.Info("Node Changed to role: " + o.Data.(raft.RaftState).String())
-			n.checkIfNodeNeedsUnblock()
+			go n.checkIfNodeNeedsUnblock()
 		}
 	}()
 }
@@ -66,7 +66,7 @@ func (n *Node) registerLeaderChangesChan() {
 				n.logger.Info("New Leader: " + leaderID)
 			} else {
 				n.logger.Info("No Leader available in the Cluster")
-				n.checkIfNodeNeedsUnblock()
+				go n.checkIfNodeNeedsUnblock()
 			}
 		}
 	}()
@@ -120,6 +120,15 @@ func (n *Node) registerRequestVoteRequestChan() {
 // Be careful as this blocks if it isn't ran in a go func
 func (n *Node) checkIfNodeNeedsUnblock() {
 	const timeout = 1 * time.Minute
+
+	if n.IsUnBlockingCheckInProgress() {
+		n.logger.Warn("UNBLOCKING CHECK ALREADY IN PROGRESS")
+		return
+	}
+	// Sets the flag that an unblocking check process is in progress
+	n.SetUnBlockingCheckInProgress(true)
+	defer n.SetUnBlockingCheckInProgress(false)
+
 	_, leaderID := n.Consensus.LeaderWithID()
 	if leaderID != "" {
 		return

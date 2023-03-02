@@ -24,17 +24,18 @@ import (
 // Node struct defines the properties of a node
 type Node struct {
 	sync.RWMutex
-	Consensus            *raft.Raft
-	FSM                  *fsm.DatabaseFSM
-	ID                   string `json:"id" validate:"required"`
-	ConsensusAddress     string `json:"address"`
-	MainDir              string
-	storageDir           string
-	snapshotsDir         string
-	consensusDBPath      string
-	logger               hclog.Logger
-	chans                *Chans
-	unBlockingInProgress bool
+	Consensus                 *raft.Raft
+	FSM                       *fsm.DatabaseFSM
+	ID                        string `json:"id" validate:"required"`
+	ConsensusAddress          string `json:"address"`
+	MainDir                   string
+	storageDir                string
+	snapshotsDir              string
+	consensusDBPath           string
+	logger                    hclog.Logger
+	chans                     *Chans
+	unBlockingCheckInProgress bool
+	unBlockingInProgress      bool
 }
 
 // Chans struct defines the channels used for the observers
@@ -58,6 +59,22 @@ func (n *Node) SetUnBlockingInProgress(b bool) {
 	n.Lock()
 	defer n.Unlock()
 	n.unBlockingInProgress = b
+}
+
+// IsUnBlockingCheckInProgress returns a boolean value indicating whether the node is already
+// trying to check if it needs to unblock itself
+func (n *Node) IsUnBlockingCheckInProgress() bool {
+	n.RLock()
+	defer n.RUnlock()
+	return n.unBlockingCheckInProgress
+}
+
+// SetUnBlockingCheckInProgress sets the unBlockingCheckInProgress property of the Node struct
+// which indicates whether the node is trying to check if it needs to unblock itself
+func (n *Node) SetUnBlockingCheckInProgress(b bool) {
+	n.Lock()
+	defer n.Unlock()
+	n.unBlockingCheckInProgress = b
 }
 
 // New initializes and returns a new Node
