@@ -11,7 +11,7 @@ import (
 var mode = config.DiscoverDefault
 
 func SetMode(m string) error {
-	if mode != config.DiscoverDefault {
+	if mode != config.DiscoverDefault && mode != config.DiscoverNubeWatch {
 		return errors.New("discover mode not recognized")
 	}
 	mode = m
