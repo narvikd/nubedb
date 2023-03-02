@@ -28,8 +28,8 @@ func (n *Node) registerObservers() {
 // (which is compatible with everything), inside the function it can be used as if was a type.
 //
 // When passing newObserver[raft.Something] it passes the type raft.Something as an argument.
-func registerNewObserver[T any](consensus *raft.Raft, channel chan raft.Observation) {
-	observer := raft.NewObserver(channel, false, func(o *raft.Observation) bool {
+func registerNewObserver[T any](consensus *raft.Raft, blocking bool, channel chan raft.Observation) {
+	observer := raft.NewObserver(channel, blocking, func(o *raft.Observation) bool {
 		_, ok := o.Data.(T)
 		return ok
 	})
@@ -40,7 +40,7 @@ func registerNewObserver[T any](consensus *raft.Raft, channel chan raft.Observat
 func (n *Node) registerNodeChangesChan() {
 	n.chans.nodeChanges = make(chan raft.Observation, 4)
 	// Creates and register an observer that filters for raft state observations and sends them to the channel.
-	registerNewObserver[raft.RaftState](n.Consensus, n.chans.nodeChanges)
+	registerNewObserver[raft.RaftState](n.Consensus, false, n.chans.nodeChanges)
 	// Creates a goroutine to receive and handle the observations.
 	go func() {
 		// Blocks until something enters the channel
@@ -55,7 +55,7 @@ func (n *Node) registerNodeChangesChan() {
 func (n *Node) registerLeaderChangesChan() {
 	n.chans.leaderChanges = make(chan raft.Observation, 4)
 	// Creates and registers an observer that filters for leader observations and sends them to the channel.
-	registerNewObserver[raft.LeaderObservation](n.Consensus, n.chans.leaderChanges)
+	registerNewObserver[raft.LeaderObservation](n.Consensus, false, n.chans.leaderChanges)
 	// Creates a goroutine to receive and handle the observations.
 	go func() {
 		// Blocks until something enters the channel
@@ -76,7 +76,7 @@ func (n *Node) registerLeaderChangesChan() {
 func (n *Node) registerFailedHBChangesChan() {
 	n.chans.failedHBChanges = make(chan raft.Observation, 4)
 	// Creates and registers an observer that filters for failed heartbeat observations and sends them to the channel.
-	registerNewObserver[raft.FailedHeartbeatObservation](n.Consensus, n.chans.failedHBChanges)
+	registerNewObserver[raft.FailedHeartbeatObservation](n.Consensus, false, n.chans.failedHBChanges)
 	// Creates a goroutine to receive and handle the observations.
 	go func() {
 		// Blocks until something enters the channel
@@ -94,7 +94,7 @@ func (n *Node) registerFailedHBChangesChan() {
 func (n *Node) registerRequestVoteRequestChan() {
 	n.chans.requestVoteRequest = make(chan raft.Observation, 4)
 	// Creates and registers an observer that filters for changes in election-votes observations and sends them to the channel.
-	registerNewObserver[raft.RequestVoteRequest](n.Consensus, n.chans.requestVoteRequest)
+	registerNewObserver[raft.RequestVoteRequest](n.Consensus, false, n.chans.requestVoteRequest)
 	// Creates a goroutine to receive and handle the observations.
 	go func() {
 		// Blocks until something enters the channel
