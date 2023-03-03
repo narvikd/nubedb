@@ -19,7 +19,6 @@ func (a *ApiCtx) consensusState(fiberCtx *fiber.Ctx) error {
 	address, id := a.Node.Consensus.LeaderWithID()
 	stats["leader"] = fmt.Sprintf("Address: %s Leader ID: %s", address, id)
 	stats["node_id"] = a.Config.CurrentNode.ID
-	stats["node_host"] = a.Config.CurrentNode.Host
 	stats["is_quorum_possible"] = strconv.FormatBool(a.Node.IsQuorumPossible(false))
 	return jsonresponse.OK(fiberCtx, "consensus state retrieved successfully", stats)
 }

@@ -1,30 +1,46 @@
 version: "3.9"
 
-networks:
-  nubedb:
-    external: false
-
 services:
   bootstrap-node:
-    image: narvikd/nubedb:latest
-    hostname: bootstrap-node
-    ports:
-      - '3001:3001'
+    image: narvikd/nubedb:3.3.3-rc.0
+    container_name: nubedb-bootstrap-node
+    network_mode: "host"
     volumes:
-      - ./data:/app/data
-#    environment:
-#      - FSM_PERFORMANCE=true
-#      - DISCOVER_STRATEGY=default
+      - /srv/data/nubedb/data:/app/data
+    environment:
+      - DISCOVER_STRATEGY=sequential
+      - ID=bootstrap-node
+      - API_PORT=10011
+      - CONSENSUS_PORT=10012
+      - GRPC_PORT=10013
     restart: on-failure
-  node:
-    image: narvikd/nubedb:latest
+  node2:
+    image: narvikd/nubedb:3.3.3-rc.0
+    container_name: nubedb-node2
+    network_mode: "host"
     volumes:
-      - ./data:/app/data
-#    environment:
-#      - FSM_PERFORMANCE=true
-#      - DISCOVER_STRATEGY=default
-    restart: on-failure
+      - /srv/data/nubedb/data:/app/data
+    environment:
+      - DISCOVER_STRATEGY=sequential
+      - ID=nubedb-node2
+      - API_PORT=10021
+      - CONSENSUS_PORT=10022
+      - GRPC_PORT=10023
     depends_on:
       - bootstrap-node
-    deploy:
-      replicas: 4
+    restart: on-failure
+  node3:
+    image: narvikd/nubedb:3.3.3-rc.0
+    container_name: nubedb-node3
+    network_mode: "host"
+    volumes:
+      - /srv/data/nubedb/data:/app/data
+    environment:
+      - DISCOVER_STRATEGY=sequential
+      - ID=nubedb-node3
+      - API_PORT=10031
+      - CONSENSUS_PORT=10032
+      - GRPC_PORT=10033
+    depends_on:
+      - bootstrap-node
+    restart: on-failure

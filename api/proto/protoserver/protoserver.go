@@ -6,6 +6,7 @@ import (
 	"net"
 	"nubedb/api/proto"
 	"nubedb/cluster/consensus"
+	"nubedb/discover"
 	"nubedb/internal/app"
 	"nubedb/internal/config"
 )
@@ -19,7 +20,7 @@ type server struct {
 
 // Start starts the gRPC server.
 func Start(a *app.App) error {
-	listen, errListen := net.Listen("tcp", a.Config.CurrentNode.GrpcAddress)
+	listen, errListen := net.Listen("tcp", discover.NewGrpcAddress(a.Node.ID))
 	if errListen != nil {
 		return errListen
 	}

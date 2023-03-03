@@ -102,10 +102,11 @@ func newNode(cfg config.Config) (*Node, error) {
 		return nil, errDB
 	}
 
+	nodeID := cfg.CurrentNode.ID
 	n := &Node{
 		FSM:              f,
-		ID:               cfg.CurrentNode.ID,
-		ConsensusAddress: cfg.CurrentNode.ConsensusAddress,
+		ID:               nodeID,
+		ConsensusAddress: discover.NewConsensusAddr(nodeID),
 		MainDir:          dir,
 		storageDir:       storageDir,
 		snapshotsDir:     dir, // This isn't a typo, it will create a snapshots dir inside the dir automatically
@@ -209,9 +210,6 @@ func (n *Node) setConsensusLogger(cfg *raft.Config) {
 
 // startConsensus boots up the consensus process for the node, by adding it to an existing or new cluster.
 func (n *Node) startConsensus(currentNodeID string) error {
-	// Define the bootstrapping leader ID, this is useful in case the consensus hasn't been started yet.
-	const bootstrappingLeader = "bootstrap-node"
-
 	// Check if the consensus has already been bootstrapped.
 	consensusCfg := n.Consensus.GetConfiguration().Configuration()
 	if len(consensusCfg.Servers) >= 2 {
@@ -220,7 +218,7 @@ func (n *Node) startConsensus(currentNodeID string) error {
 	}
 
 	// Define the list of bootstrapping servers.
-	bootstrappingServers := newConsensusServerList(bootstrappingLeader)
+	bootstrappingServers := newConsensusServerList(config.BootstrappingLeader)
 
 	// Search for an existing leader and use it to overwrite the bootstrapping list.
 	// This is used in case bootstrappingLeader is down, or if it isn't the leader.
@@ -275,8 +273,8 @@ func newConsensusServerList(nodeID string) []raft.Server {
 
 func (n *Node) waitForClusterReadiness() error {
 	const (
-		maxRetryCount = 7
-		sleepTime     = 1 * time.Minute
+		maxRetryCount = 4
+		sleepTime     = 15 * time.Second
 	)
 	currentTry := 0
 	for {

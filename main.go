@@ -6,6 +6,7 @@ import (
 	"nubedb/api/proto/protoserver"
 	"nubedb/api/rest/middleware"
 	"nubedb/api/rest/route"
+	"nubedb/discover"
 	"nubedb/discover/mdnsdiscover"
 	"nubedb/internal/app"
 	"nubedb/internal/config"
@@ -13,13 +14,11 @@ import (
 	"sync"
 )
 
-func init() {
+func main() {
 	if runtime.GOOS == "windows" {
 		log.Fatalln("nubedb is only compatible with Mac and Linux")
 	}
-}
 
-func main() {
 	cfg, errCfg := config.New()
 	if errCfg != nil {
 		log.Fatalln(errCfg)
@@ -47,7 +46,7 @@ func start(a *app.App) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			mdnsdiscover.ServeAndBlock(a.Config.CurrentNode.Host, 8001)
+			mdnsdiscover.ServeAndBlock(a.Config.CurrentNode.ID, config.DiscoverPort)
 		}()
 	}
 
@@ -63,7 +62,7 @@ func startApiProto(a *app.App) {
 }
 
 func startApiRest(a *app.App) {
-	errListen := newApiRest(a).Listen(a.Config.CurrentNode.ApiAddress)
+	errListen := newApiRest(a).Listen(discover.NewApiAddr(a.Node.ID))
 	if errListen != nil {
 		log.Fatalln("api can't be started:", errListen)
 	}

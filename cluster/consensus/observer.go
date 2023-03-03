@@ -160,16 +160,16 @@ func (n *Node) ReinstallNode() {
 		errorskit.FatalWrap(future.Error(), errPanic+"couldn't shut down")
 	}
 
-	leader, errSearchLeader := discover.SearchLeader(n.ID)
-	if errSearchLeader != nil {
-		errorskit.FatalWrap(errSearchLeader, errPanic+"couldn't search for leader")
-	}
-	leaderGrpcAddress := discover.NewGrpcAddress(leader)
-
-	errConsensusRemove := cluster.ConsensusRemove(n.ID, leaderGrpcAddress)
-	if errConsensusRemove != nil {
-		errorskit.FatalWrap(errConsensusRemove, errPanic+"couldn't remove from consensus")
-	}
+	//leader, errSearchLeader := discover.SearchLeader(n.ID)
+	//if errSearchLeader != nil {
+	//	errorskit.FatalWrap(errSearchLeader, errPanic+"couldn't search for leader")
+	//}
+	//leaderGrpcAddress := discover.NewGrpcAddress(leader)
+	//
+	//errConsensusRemove := cluster.ConsensusRemove(n.ID, leaderGrpcAddress)
+	//if errConsensusRemove != nil {
+	//	errorskit.FatalWrap(errConsensusRemove, errPanic+"couldn't remove from consensus")
+	//}
 
 	errDeleteDirs := filekit.DeleteDirs(n.MainDir)
 	if errDeleteDirs != nil {
